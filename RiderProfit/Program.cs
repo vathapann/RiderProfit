@@ -11,10 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<IdentityUserAccessor>();
-builder.Services.AddScoped<IdentityRedirectManager>();
-builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+builder.Services.AddCascadingAuthenticationState(); // a built-in component that provides the current authentication state to descendant components
+builder.Services.AddScoped<IdentityUserAccessor>(); // a custom service that provides the current Identity user to descendant components
+builder.Services.AddScoped<IdentityRedirectManager>(); // a custom service that provides the ability to redirect to the login page when the user is not authenticated
+builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>(); 
 
 builder.Services.AddAuthentication(options =>
     {
@@ -36,6 +36,13 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
+
+// Create or upgrade the database on startup so the app runs without manual setup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
