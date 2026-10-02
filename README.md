@@ -35,7 +35,7 @@ Each rider has their own account (ASP.NET Core Identity), and every rider sees o
 |---|---|
 | TBD | Shifts, Vehicles, data model and EF Core, weather and holiday APIs |
 | TBD | Profit Dashboard, FY Summary, charts and responsive layout |
-| TBD | Expenses, Shift Planner, ML.NET model, NUnit test project |
+| TBD | Expenses, Shift Planner, ML.NET model, NUnit test project |re
 
 ## Versions
 
