@@ -115,3 +115,12 @@ To start again with an empty database, stop the app and delete `RiderProfit/Data
 | `Could not find a part of the path '...obj\Debug/...'` in `dotnet watch` | You're on the .NET 10 SDK. Run from the solution folder so `global.json` selects .NET 9, and install a 9.0 SDK if needed. |
 | `dotnet ef` not found | Run `dotnet tool restore` in the solution folder. |
 | Page doesn't update after editing | Make sure you used `dotnet watch`, not `dotnet run`. Press `Ctrl+R` to restart. |
+
+
+## Nessessary Commands 
+
+-> to Migrate new models
+dotnet ef migrations add {migration_msg} --project RiderProfit
+
+-> build project
+dotnet build --project RiderProfit

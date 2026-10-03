@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using RiderProfit.Models;
 
 namespace RiderProfit.Data
 {
