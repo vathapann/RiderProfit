@@ -1,9 +1,45 @@
-﻿@page "/shift-logging"
+@page "/shift-logging"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.Security.Claims
+@inject IVehicleService VehicleService
 
 <PageTitle>Shift Logging</PageTitle>
 
 <h1>Shift Logging</h1>
 
-@code {
+@if (vehicles is null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (vehicles.Count == 0)
+{
+    <NoVehiclePrompt Message="Add your vehicle first so we can work out the running cost of each shift." />
+}
+else
+{
+    @* TODO: shift form and list of shifts. The vehicle dropdown is filled from 'vehicles'. *@
+    <p>You have @vehicles.Count vehicle(s). The shift form goes here.</p>
+}
 
+@code {
+    // Provided by AddCascadingAuthenticationState() in Program.cs
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    // null while loading; empty list means the rider has no vehicles yet
+    private List<Vehicle>? vehicles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState).User;
+
+        // Identity stores the user's Id in the NameIdentifier claim
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null)
+        {
+            return;
+        }
+
+        vehicles = await VehicleService.GetVehiclesAsync(userId);
+    }
 }

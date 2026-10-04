@@ -1,0 +1,13 @@
+@* Shown when a rider has no vehicles yet. Logging shifts needs a vehicle,
+   because each shift's running cost comes from the vehicle's CostPerKm(). *@
+
+<div class="alert alert-info d-flex flex-wrap align-items-center gap-2" role="alert">
+    <span class="flex-grow-1">@Message</span>
+    <a href="vehicles" class="btn btn-primary btn-sm">Add vehicle</a>
+</div>
+
+@code {
+    // Text explaining why a vehicle is needed on the current page
+    [Parameter]
+    public string Message { get; set; } = "Add your vehicle to get started.";
+}

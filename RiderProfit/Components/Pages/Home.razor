@@ -1,4 +1,6 @@
-﻿@page "/"
+@page "/"
+@using System.Security.Claims
+@inject IVehicleService VehicleService
 @* The first page to start with (Welcome page) when the user is not logged in. This page is accessible to all users, regardless of their authentication status. *@
 
 <PageTitle>Home</PageTitle>
@@ -6,8 +8,36 @@
     <Authorized>
         <h1>Hello @context.User.Identity?.Name!</h1>
         <p>Welcome to RiderProfit App!</p>
+
+        @* Get-started banner for new riders who haven't added a vehicle yet *@
+        @if (hasNoVehicles)
+        {
+            <NoVehiclePrompt Message="Get started: add your vehicle, then log your first shift." />
+        }
     </Authorized>
     <NotAuthorized>
         <p>Please log in to access the RiderProfit App.</p>
     </NotAuthorized>
 </AuthorizeView>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private bool hasNoVehicles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState).User;
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // Visitors who aren't logged in have no vehicles to check
+        if (userId is null)
+        {
+            return;
+        }
+
+        var vehicles = await VehicleService.GetVehiclesAsync(userId);
+        hasNoVehicles = vehicles.Count == 0;
+    }
+}

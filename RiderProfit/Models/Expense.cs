@@ -1,7 +1,7 @@
 namespace RiderProfit.Models;
 public class Expense {
     public int Id {set; get;}
-    public string? UserId {set; get;}
+    public string UserId {set; get;} = string.Empty;
     public ExpenseCategory Category {set; get;} = ExpenseCategory.Other;
     public decimal Amount {set; get;} = 0;
     public DateTime Date {set; get;} = DateTime.MinValue;
