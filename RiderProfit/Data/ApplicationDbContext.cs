@@ -9,6 +9,7 @@ namespace RiderProfit.Data
     {
         // One DbSet per table. Vehicles holds all vehicle types (Car, EBike, Motorbike).
         public DbSet<Shift> Shifts => Set<Shift>();
+        public DbSet<Trip> Trips => Set<Trip>();
         public DbSet<Expense> Expenses => Set<Expense>();
         public DbSet<Vehicle> Vehicles => Set<Vehicle>();
         public DbSet<Platform> Platforms => Set<Platform>();
@@ -27,13 +28,22 @@ namespace RiderProfit.Data
                 user.Property(u => u.State).HasConversion<string>().HasMaxLength(3);
             });
 
-            // Store every vehicle type in one table, with a "VehicleType" column saying which subclass it is
-            builder
-                .Entity<Vehicle>()
-                .HasDiscriminator<string>("VehicleType")
-                .HasValue<Car>("Car")
-                .HasValue<EBike>("EBike")
-                .HasValue<Motorbike>("Motorbike");
+            builder.Entity<Vehicle>(vehicle =>
+            {
+                // Store every vehicle type in one table, with a "VehicleType" column saying which subclass it is
+                vehicle
+                    .HasDiscriminator<string>("VehicleType")
+                    .HasValue<Car>("Car")
+                    .HasValue<EBike>("EBike")
+                    .HasValue<Motorbike>("Motorbike");
+
+                // Each vehicle belongs to a rider; deleting the rider deletes their vehicles
+                vehicle
+                    .HasOne<ApplicationUser>()
+                    .WithMany()
+                    .HasForeignKey(v => v.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             builder.Entity<Shift>(shift =>
             {
@@ -56,33 +66,37 @@ namespace RiderProfit.Data
                     .WithMany()
                     .HasForeignKey(s => s.VehicleId)
                     .OnDelete(DeleteBehavior.NoAction);
+            });
 
-                shift.Property(s => s.Suburb).HasMaxLength(100);
+            builder.Entity<Trip>(trip =>
+            {
+                // A trip can't exist without its shift, so deleting a shift deletes its trips
+                trip.HasOne(t => t.Shift)
+                    .WithMany(s => s.Trips)
+                    .HasForeignKey(t => t.ShiftId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-                builder.Entity<Expense>(expense =>
-                {
-                    expense
-                        .HasOne<ApplicationUser>()
-                        .WithMany()
-                        .HasForeignKey(e => e.UserId)
-                        .OnDelete(DeleteBehavior.Cascade);
+                trip.Property(t => t.Suburb).HasMaxLength(100);
+                trip.Property(t => t.PickupName).HasMaxLength(150);
+            });
 
-                    // Deleting a shift keeps its expenses but unlinks them (ShiftId becomes null)
-                    expense
-                        .HasOne(e => e.Shift)
-                        .WithMany(s => s.Expenses)
-                        .HasForeignKey(e => e.ShiftId)
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    expense.Property(e => e.Category).HasConversion<string>().HasMaxLength(20);
-                });
-
-                builder
-                    .Entity<Vehicle>()
+            builder.Entity<Expense>(expense =>
+            {
+                // Each expense belongs to a rider; deleting the rider deletes their expenses
+                expense
                     .HasOne<ApplicationUser>()
                     .WithMany()
-                    .HasForeignKey(v => v.UserId)
+                    .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                // Deleting a shift keeps its expenses but unlinks them (ShiftId becomes null)
+                expense
+                    .HasOne(e => e.Shift)
+                    .WithMany(s => s.Expenses)
+                    .HasForeignKey(e => e.ShiftId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                expense.Property(e => e.Category).HasConversion<string>().HasMaxLength(20);
             });
 
             builder.Entity<Platform>(platform =>
