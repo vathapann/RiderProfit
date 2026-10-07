@@ -21,8 +21,14 @@ public class VehicleService(IDbContextFactory<ApplicationDbContext> dbFactory) :
         await using var db = await dbFactory.CreateDbContextAsync();
         return await db.Vehicles.FirstOrDefaultAsync(v => v.Id == id && v.UserId == userId);
     }
+    public async Task AddVehicleAsync(Vehicle vehicle)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync();
+    }
+
     // TODO (Sovatha): implement these. Placeholders so the project builds; they throw if called.
-    public Task AddVehicleAsync(Vehicle vehicle) => throw new NotImplementedException();
 
     public Task UpdateVehicleAsync(Vehicle vehicle) => throw new NotImplementedException();
 
