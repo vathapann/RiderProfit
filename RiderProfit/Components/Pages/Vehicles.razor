@@ -1,12 +1,222 @@
 @page "/vehicles"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@inject IVehicleService VehicleService
 
 <PageTitle>Vehicles</PageTitle>
 
 <h1>Vehicles</h1>
 
-@* TODO (Sovatha): list the rider's vehicles and add/edit them using IVehicleService *@
+<div class="row g-4">
+    @* Add vehicle form *@
+    <div class="col-lg-5">
+        <h2 class="h5">Add a vehicle</h2>
+
+        <EditForm Model="form" OnValidSubmit="Save" FormName="add-vehicle">
+            <DataAnnotationsValidator />
+
+            @* Vehicle type decides which extra fields are shown and which class is created *@
+            <div class="mb-3">
+                <label class="form-label d-block">Type</label>
+                @* <InputRadioGroup> = Blazor built-in component *@
+                @* @bind-value = handle render value and value change *@
+                <InputRadioGroup @bind-Value="form.Type">
+                    @foreach (VehicleType type in Enum.GetValues<VehicleType>())
+                    {
+                        <div class="form-check form-check-inline">
+                            <InputRadio class="form-check-input" Value="type" id="@($"type-{type}")" />
+                            <label class="form-check-label" for="@($"type-{type}")">@type</label>
+                        </div>
+                    }
+                </InputRadioGroup>
+            </div>
+
+            <div class="mb-3">
+                <label for="make" class="form-label">Make</label>
+                <InputText id="make" class="form-control" @bind-Value="form.Make" placeholder="e.g. Honda" />
+                <ValidationMessage For="() => form.Make" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="model" class="form-label">Model</label>
+                <InputText id="model" class="form-control" @bind-Value="form.Model" placeholder="e.g. PCX 150" />
+                <ValidationMessage For="() => form.Model" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="year" class="form-label">Year</label>
+                <InputNumber id="year" class="form-control" @bind-Value="form.Year" />
+                <ValidationMessage For="() => form.Year" class="text-danger" />
+            </div>
+
+            @if (form.Type == VehicleType.EBike)
+            {
+                <div class="mb-3">
+                    <label for="energy" class="form-label">Energy use (kWh per 100 km)</label>
+                    <InputNumber id="energy" class="form-control" @bind-Value="form.EnergyConsumption" />
+                    <ValidationMessage For="() => form.EnergyConsumption" class="text-danger" />
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label for="fuel" class="form-label">Fuel use (litres per 100 km)</label>
+                    <InputNumber id="fuel" class="form-control" @bind-Value="form.FuelConsumption" />
+                    <ValidationMessage For="() => form.FuelConsumption" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="price" class="form-label">Fuel price ($ per litre)</label>
+                    <InputNumber id="price" class="form-control" @bind-Value="form.FuelPricePerLitre" />
+                    <ValidationMessage For="() => form.FuelPricePerLitre" class="text-danger" />
+                </div>
+            }
+
+            <button type="submit" class="btn btn-primary">Save</button>
+        </EditForm>
+
+        @if (message is not null)
+        {
+            <div class="alert alert-success mt-3" role="status">@message</div>
+        }
+    </div>
+
+    @* The rider's saved vehicles *@
+    <div class="col-lg-7">
+        <h2 class="h5">My vehicles</h2>
+
+        @if (vehicles is null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else if (vehicles.Count == 0)
+        {
+            <p class="text-muted">No vehicles yet. Add one to start logging shifts.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Vehicle</th>
+                            <th>Year</th>
+                            <th class="text-end">Cost per km</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var vehicle in vehicles)
+                        {
+                            <tr>
+                                <td>@TypeName(vehicle)</td>
+                                <td>@vehicle.Make @vehicle.Model</td>
+                                <td>@vehicle.Year</td>
+                                @* Polymorphism: each vehicle type calculates this its own way *@
+                                <td class="text-end">@vehicle.CostPerKm().ToString("C3")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
 
+    private string? userId;
+    private List<Vehicle>? vehicles;
+    private VehicleForm form = new();
+    private string? message;
+
+    // Load the rider's vehicles when the page is first displayed
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState).User;
+        userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        await LoadVehiclesAsync();
+    }
+
+    private async Task LoadVehiclesAsync()
+    {
+        if (userId is not null)
+        {
+            vehicles = await VehicleService.GetVehiclesAsync(userId);
+        }
+    }
+
+    // Runs only when every validation rule on the form passes
+    private async Task Save()
+    {
+        if (userId is null)
+        {
+            return;
+        }
+
+        var vehicle = form.ToVehicle(userId);
+        await VehicleService.AddVehicleAsync(vehicle);
+
+        message = $"{vehicle.Make} {vehicle.Model} added.";
+        form = new VehicleForm();
+        await LoadVehiclesAsync();
+    }
+
+    private static string TypeName(Vehicle vehicle) => vehicle switch
+    {
+        Car => "Car",
+        Motorbike => "Motorbike",
+        EBike => "E-bike",
+        _ => "Vehicle"
+    };
+
+    private enum VehicleType
+    {
+        Car,
+        Motorbike,
+        EBike
+    }
+
+    // Holds what the rider types in. Vehicle is abstract, so the form can't bind to it directly;
+    // ToVehicle() creates the right subclass once the rider has chosen a type.
+    private class VehicleForm
+    {
+        public VehicleType Type { get; set; } = VehicleType.Car;
+
+        [Required, StringLength(50)]
+        public string Make { get; set; } = string.Empty;
+
+        [Required, StringLength(50)]
+        public string Model { get; set; } = string.Empty;
+
+        [Range(1980, 2100, ErrorMessage = "Enter a year between 1980 and 2100.")]
+        public int Year { get; set; } = DateTime.Today.Year;
+
+        [Range(0.1, 50, ErrorMessage = "Enter fuel use between 0.1 and 50 L/100 km.")]
+        public decimal FuelConsumption { get; set; } = 7;
+
+        [Range(0.5, 5, ErrorMessage = "Enter a fuel price between $0.50 and $5.00.")]
+        public decimal FuelPricePerLitre { get; set; } = 2.00m;
+
+        [Range(0.1, 10, ErrorMessage = "Enter energy use between 0.1 and 10 kWh/100 km.")]
+        public decimal EnergyConsumption { get; set; } = 1.5m;
+
+        public Vehicle ToVehicle(string userId)
+        {
+            Vehicle vehicle = Type switch
+            {
+                VehicleType.Car => new Car { FuelConsumption = FuelConsumption, FuelPricePerLitre = FuelPricePerLitre },
+                VehicleType.Motorbike => new Motorbike { FuelConsumption = FuelConsumption, FuelPricePerLitre = FuelPricePerLitre },
+                _ => new EBike { EnergyConsumption = EnergyConsumption }
+            };
+
+            vehicle.UserId = userId;
+            vehicle.Make = Make.Trim();
+            vehicle.Model = Model.Trim();
+            vehicle.Year = Year;
+            return vehicle;
+        }
+    }
 }

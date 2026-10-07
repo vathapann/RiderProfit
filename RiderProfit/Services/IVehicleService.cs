@@ -7,7 +7,7 @@ public interface IVehicleService
 {
     Task<List<Vehicle>> GetVehiclesAsync(string userId);
     Task<Vehicle?> GetVehicleAsync(int id, string userId);
-    // Task AddVehicleAsync(Vehicle vehicle);
-    // Task UpdateVehicleAsync(Vehicle vehicle);
-    // Task<bool> DeleteVehicleAsync(int id, string userId);   // false if the vehicle has shifts
+    Task AddVehicleAsync(Vehicle vehicle);
+    Task UpdateVehicleAsync(Vehicle vehicle);
+    Task<bool> DeleteVehicleAsync(int id, string userId);   // false if the vehicle has shifts
 }
