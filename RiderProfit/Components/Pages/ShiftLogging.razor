@@ -1,13 +1,17 @@
 @page "/shift-logging"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
+@* Services that load and save the rider's data *@
 @inject IVehicleService VehicleService
+@inject IShiftService ShiftService
+@inject IPlatformService PlatformService
 
 <PageTitle>Shift Logging</PageTitle>
 
 <h1>Shift Logging</h1>
 
-@if (vehicles is null)
+@if (vehicles is null || platforms is null || shifts is null)
 {
     <p><em>Loading...</em></p>
 }
@@ -17,8 +21,115 @@ else if (vehicles.Count == 0)
 }
 else
 {
-    @* TODO: shift form and list of shifts. The vehicle dropdown is filled from 'vehicles'. *@
-    <p>You have @vehicles.Count vehicle(s). The shift form goes here.</p>
+    <div class="row g-4">
+        @* Add shift form *@
+        <div class="col-lg-4">
+            <h2 class="h5">Log a shift</h2>
+
+            <EditForm Model="form" OnValidSubmit="SaveAsync" FormName="add-shift">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label for="date" class="form-label">Date</label>
+                    <InputDate id="date" class="form-control" @bind-Value="form.Date" />
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col">
+                        <label for="start" class="form-label">Start</label>
+                        <input id="start" type="time" class="form-control" @bind="form.Start" />
+                    </div>
+                    <div class="col">
+                        <label for="end" class="form-label">End</label>
+                        <input id="end" type="time" class="form-control" @bind="form.End" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="platform" class="form-label">Platform</label>
+                    <InputSelect id="platform" class="form-select" @bind-Value="form.PlatformId">
+                        <option value="0">Choose platform</option>
+                        @foreach (var p in platforms)
+                        {
+                            <option value="@p.Id">@p.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => form.PlatformId" class="text-danger" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="vehicle" class="form-label">Vehicle</label>
+                    <InputSelect id="vehicle" class="form-select" @bind-Value="form.VehicleId">
+                        <option value="0">Choose vehicle</option>
+                        @foreach (var v in vehicles)
+                        {
+                            <option value="@v.Id">@v.Make @v.Model</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => form.VehicleId" class="text-danger" />
+                </div>
+
+                @* <div class="mb-3">
+                    <label for="distance" class="form-label">Total distance (km)</label>
+                    <InputNumber id="distance" class="form-control" @bind-Value="form.TotalDistanceKm" />
+                    <ValidationMessage For="() => form.TotalDistanceKm" class="text-danger" />
+                </div> *@
+
+                <button type="submit" class="btn btn-primary">Save shift</button>
+            </EditForm>
+
+            @if (errorMessage is not null)
+            {
+                <div class="alert alert-danger mt-3" role="alert">@errorMessage</div>
+            }
+            @if (message is not null)
+            {
+                <div class="alert alert-success mt-3" role="status">@message</div>
+            }
+        </div>
+
+        @* The rider's shifts, newest first *@
+        <div class="col-lg-8">
+            <h2 class="h5">My shifts</h2>
+
+            @if (shifts.Count == 0)
+            {
+                <p class="text-muted">No shifts yet. Log your first shift using the form.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Platform</th>
+                                <th>Vehicle</th>
+                                <th class="text-end">Hours</th>
+                                <th class="text-end">Trips</th>
+                                <th class="text-end">Earnings</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var shift in shifts)
+                            {
+                                <tr>
+                                    <td>@shift.StartTime.ToString("ddd d MMM")</td>
+                                    <td>@shift.StartTime.ToString("h:mm tt") – @shift.EndTime.ToString("h:mm tt")</td>
+                                    <td>@shift.Platform?.Name</td>
+                                    <td>@shift.Vehicle?.Make @shift.Vehicle?.Model</td>
+                                    <td class="text-end">@shift.Duration.TotalHours.ToString("0.0")</td>
+                                    <td class="text-end">@shift.TripCount</td>
+                                    <td class="text-end">@shift.Earnings.ToString("C")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
 }
 
 @code {
@@ -26,20 +137,99 @@ else
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
 
-    // null while loading; empty list means the rider has no vehicles yet
+    // Kept in a field because SaveAsync needs it too
+    private string? userId;
+
+    // null while loading; empty list means the rider has none yet
     private List<Vehicle>? vehicles;
+    private List<Platform>? platforms;
+    private List<Shift>? shifts;
+
+    // The object the form's inputs are bound to
+    private ShiftForm form = new();
+    private string? message;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthState).User;
 
         // Identity stores the user's Id in the NameIdentifier claim
-        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId is null)
         {
             return;
         }
 
+        // get all necessary data from Service namespace
         vehicles = await VehicleService.GetVehiclesAsync(userId);
+        platforms = await PlatformService.GetPlatformsAsync(userId);
+        shifts = await ShiftService.GetShiftsAsync(userId);
+
+        // Most riders use one vehicle, so pre-select it
+        if (vehicles.Count == 1)
+        {
+            form.VehicleId = vehicles[0].Id;
+        }
+    }
+
+    // Runs only when every validation rule on the form passes
+    private async Task SaveAsync()
+    {
+        message = null;
+        errorMessage = null;
+
+        if (userId is null)
+        {
+            return;
+        }
+
+        // A rule comparing two fields, which [Range] can't express
+        if (form.Start == form.End)
+        {
+            errorMessage = "Start and end time can't be the same.";
+            return;
+        }
+
+        var shift = form.ToShift(userId);
+        await ShiftService.AddShiftAsync(shift);
+
+        message = $"Shift on {shift.StartTime:ddd d MMM} saved.";
+
+        // Start a fresh form, keeping the vehicle so the next shift is quicker to log
+        form = new ShiftForm { VehicleId = form.VehicleId };
+        shifts = await ShiftService.GetShiftsAsync(userId);
+    }
+
+    private class ShiftForm
+    {
+        public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+        public TimeOnly Start { get; set; } = new(17, 0);
+        public TimeOnly End { get; set; } = new(21, 0);
+
+        [Range(1, int.MaxValue, ErrorMessage = "Choose a platform.")]
+        public int PlatformId { get; set; }
+
+        [Range(1, int.MaxValue, ErrorMessage = "Choose a vehicle.")]
+        public int VehicleId { get; set; }
+
+        @* [Range(0, 1000, ErrorMessage = "Enter a distance between 0 and 1000 km.")] *@
+        @* public decimal TotalDistanceKm { get; set; } *@
+
+        public Shift ToShift(string userId)
+        {
+            // An end time earlier than the start means the shift ran past midnight (e.g. 10 pm – 2 am)
+            var endDate = End <= Start ? Date.AddDays(1) : Date;
+
+            return new Shift
+            {
+                UserId = userId,
+                PlatformId = PlatformId,
+                VehicleId = VehicleId,
+                StartTime = Date.ToDateTime(Start),
+                EndTime = endDate.ToDateTime(End),
+                @* TotalDistanceKm = TotalDistanceKm *@
+            };
+        }
     }
 }

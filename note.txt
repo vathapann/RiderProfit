@@ -1,0 +1,4 @@
+--Create a computer vision in azure for handling trips extraction from screenshots
+
+dotnet user-secrets set "AzureVision:Endpoint" "<Endpoint>" --project RiderProfit
+dotnet user-secrets set "AzureVision:Key" "<KEY 1>" --project RiderProfit

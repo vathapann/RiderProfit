@@ -9,7 +9,7 @@ public class Shift
     public DateTime StartTime { set; get; } = DateTime.MinValue;
     public DateTime EndTime { set; get; } = DateTime.MinValue;
 
-    public decimal TotalDistanceKm { set; get; } = 0;
+    public decimal TotalDistanceKm => Trips.Sum(t => t.DistanceKm);
 
     public Platform? Platform { set; get; } = null;
     public int VehicleId { set; get; } = 0;

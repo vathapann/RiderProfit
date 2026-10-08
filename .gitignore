@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 # Local SQLite database (created on startup)
 RiderProfit/Data/app.db*
+
+# Local environment files (may contain secrets)
+.env
