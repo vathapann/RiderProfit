@@ -1,1 +1,5 @@
 dotnet ef migrations add AddTrips --project RiderProfit
+
+dotnet ef migrations add EditTripsField --project RiderProfit
+
+dotnet ef migrations add LimitDropoffNameLength --project RiderProfit

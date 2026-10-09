@@ -76,8 +76,10 @@ namespace RiderProfit.Data
                     .HasForeignKey(t => t.ShiftId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                trip.Property(t => t.Suburb).HasMaxLength(100);
+                trip.Property(t => t.DropoffSuburb).HasMaxLength(100);
+                trip.Property(t => t.PickupSuburb).HasMaxLength(100);
                 trip.Property(t => t.PickupName).HasMaxLength(150);
+                trip.Property(t => t.DropoffName).HasMaxLength(150);
             });
 
             builder.Entity<Expense>(expense =>
