@@ -12,5 +12,5 @@ public enum ExpenseCategory
     Registration,
     Phone,
     Equipment,
-    Other
+    Other,
 }
