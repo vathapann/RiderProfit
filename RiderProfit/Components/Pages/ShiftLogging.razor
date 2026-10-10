@@ -109,6 +109,7 @@ else
                                 <th class="text-end">Hours</th>
                                 <th class="text-end">Trips</th>
                                 <th class="text-end">Earnings</th>
+                                <th><span class="visually-hidden">Actions</span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -122,6 +123,10 @@ else
                                     <td class="text-end">@shift.Duration.TotalHours.ToString("0.0")</td>
                                     <td class="text-end">@shift.TripCount</td>
                                     <td class="text-end">@shift.Earnings.ToString("C")</td>
+                                    <td class="text-end">
+                                        @* Opens the shift detail page, where trips are added *@
+                                        <a href="shift-logging/@shift.Id" class="btn btn-sm btn-outline-primary">Trips</a>
+                                    </td>
                                 </tr>
                             }
                         </tbody>

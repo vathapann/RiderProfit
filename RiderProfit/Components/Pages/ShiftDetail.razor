@@ -1,0 +1,301 @@
+@page "/shift-logging/{ShiftId:int}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.Security.Claims
+@using RiderProfit.Services.Import
+@* Services that load and save the rider's data *@
+@inject IShiftService ShiftService
+@inject ITripService TripService
+@inject ITripImporter TripImporter
+
+<PageTitle>Shift details</PageTitle>
+
+<a href="shift-logging" class="btn btn-link px-0 mb-2">← Back to shifts</a>
+
+@if (isLoading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (shift is null)
+{
+    <div class="alert alert-warning" role="alert">Shift not found.</div>
+}
+else
+{
+    <h1>@shift.Platform?.Name · @shift.StartTime.ToString("ddd d MMM")</h1>
+    <p class="text-muted">
+        @shift.StartTime.ToString("h:mm tt") – @shift.EndTime.ToString("h:mm tt")
+        · @shift.Vehicle?.Make @shift.Vehicle?.Model
+    </p>
+
+    @* Summary cards: totals are calculated from the shift's trips *@
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Earnings</div>
+                    <div class="fs-4 fw-semibold">@shift.Earnings.ToString("C")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Trips</div>
+                    <div class="fs-4 fw-semibold">@shift.TripCount</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Distance</div>
+                    <div class="fs-4 fw-semibold">@shift.TotalDistanceKm.ToString("0.0") km</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Earnings per hour</div>
+                    <div class="fs-4 fw-semibold">@EarningsPerHour.ToString("C")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h5">Trips</h2>
+
+    @* TODO: "Add trip manually" form *@
+
+    @* Screenshot import: only for platforms the importer understands, and only when OCR is set up *@
+    @if (shift.Platform?.Name == TripImporter.PlatformName)
+    {
+        @if (!TripImporter.IsAvailable)
+        {
+            <div class="alert alert-secondary" role="status">
+                Screenshot import is unavailable on this machine (Azure AI Vision is not configured).
+            </div>
+        }
+        else if (pendingTrips is null)
+        {
+            <div class="mb-3">
+                <label for="screenshot" class="form-label">Import trips from an Uber Eats "Earnings activity" screenshot</label>
+                <InputFile id="screenshot" OnChange="ReadScreenshotAsync" accept="image/png,image/jpeg"
+                           class="form-control" disabled="@isReading" />
+            </div>
+        }
+
+        @if (isReading)
+        {
+            <p><em>Reading screenshot...</em></p>
+        }
+    }
+
+    @if (errorMessage is not null)
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
+    @if (message is not null)
+    {
+        <div class="alert alert-success" role="status">@message</div>
+    }
+
+    @* Review step: the rider checks the trips read from the screenshot before they are saved *@
+    @if (pendingTrips is not null)
+    {
+        <div class="card border-primary mb-4">
+            <div class="card-body">
+                <h3 class="h6">Check these trips before saving</h3>
+                <p class="text-muted small">Remove any trip that was read incorrectly. You can add it manually instead.</p>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Pickup</th>
+                                <th>Drop-off</th>
+                                <th class="text-end">Distance</th>
+                                <th class="text-end">Duration</th>
+                                <th class="text-end">Earnings</th>
+                                <th><span class="visually-hidden">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var trip in pendingTrips)
+                            {
+                                <tr>
+                                    <td>@trip.StartTime.ToString("h:mm tt")</td>
+                                    <td>@trip.PickupName</td>
+                                    <td>@trip.DropoffName, @trip.DropoffSuburb</td>
+                                    <td class="text-end">@trip.DistanceKm.ToString("0.00") km</td>
+                                    <td class="text-end">@((int)trip.Duration.TotalMinutes) min</td>
+                                    <td class="text-end">@trip.Earnings.ToString("C")</td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => pendingTrips.Remove(trip)">Remove</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <button type="button" class="btn btn-primary" @onclick="SavePendingTripsAsync"
+                        disabled="@(pendingTrips.Count == 0)">Save @pendingTrips.Count trip(s)</button>
+                <button type="button" class="btn btn-outline-secondary ms-2" @onclick="CancelImport">Cancel</button>
+            </div>
+        </div>
+    }
+
+    @if (shift.Trips.Count == 0)
+    {
+        <p class="text-muted">No trips yet for this shift.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Pickup</th>
+                        <th>Drop-off</th>
+                        <th class="text-end">Distance</th>
+                        <th class="text-end">Earnings</th>
+                        <th class="text-end">Tips</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var trip in shift.Trips.OrderBy(t => t.StartTime))
+                    {
+                        <tr>
+                            <td>@trip.StartTime.ToString("h:mm tt")</td>
+                            <td>@trip.PickupName</td>
+                            <td>@trip.DropoffSuburb</td>
+                            <td class="text-end">@trip.DistanceKm.ToString("0.0") km</td>
+                            <td class="text-end">@trip.Earnings.ToString("C")</td>
+                            <td class="text-end">@trip.Tips.ToString("C")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    // Azure AI Vision accepts up to 20 MB; phone screenshots are far smaller
+    private const long MaxScreenshotBytes = 10 * 1024 * 1024;
+
+    // Filled from the URL, e.g. /shift-logging/5 → ShiftId = 5
+    [Parameter]
+    public int ShiftId { get; set; }
+
+    // Provided by AddCascadingAuthenticationState() in Program.cs
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private string? userId;
+    private Shift? shift; // includes shift.Trips
+    private bool isLoading = true;
+
+    // Trips read from a screenshot that the rider hasn't saved yet; null when not importing
+    private List<Trip>? pendingTrips;
+    private bool isReading;
+    private string? message;
+    private string? errorMessage;
+
+    // Earnings and tips divided by the whole shift's hours, including waiting time
+    private decimal EarningsPerHour =>
+        shift is null || shift.Duration.TotalHours <= 0
+            ? 0
+            : (shift.Earnings + shift.Tips) / (decimal)shift.Duration.TotalHours;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState).User;
+        userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        await LoadShiftAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadShiftAsync()
+    {
+        if (userId is not null)
+        {
+            // null if the shift doesn't exist or belongs to another rider
+            shift = await ShiftService.GetShiftAsync(ShiftId, userId);
+        }
+    }
+
+    // Reads the uploaded screenshot and shows the trips found for review
+    private async Task ReadScreenshotAsync(InputFileChangeEventArgs e)
+    {
+        if (shift is null)
+        {
+            return;
+        }
+
+        message = null;
+        errorMessage = null;
+        isReading = true;
+
+        try
+        {
+            await using var stream = e.File.OpenReadStream(MaxScreenshotBytes);
+            var trips = await TripImporter.ImportAsync(stream, shift);
+
+            // Screenshots taken while scrolling overlap, so skip trips this shift already has
+            var newTrips = trips
+                .Where(t => !shift.Trips.Any(existing =>
+                    existing.StartTime == t.StartTime && existing.Earnings == t.Earnings))
+                .ToList();
+
+            if (newTrips.Count == 0)
+            {
+                errorMessage = trips.Count == 0
+                    ? "No complete trips were found. Make sure the screenshot shows the Uber Eats Earnings activity list."
+                    : "All trips in this screenshot are already saved for this shift.";
+            }
+            else
+            {
+                pendingTrips = newTrips;
+            }
+        }
+        catch (IOException)
+        {
+            errorMessage = "The image is too large";
+        }
+        catch (Azure.RequestFailedException)
+        {
+            errorMessage = "The screenshot couldn't be read by Azure AI Vision. Please try again.";
+        }
+        finally
+        {
+            isReading = false;
+        }
+    }
+
+    private async Task SavePendingTripsAsync()
+    {
+        if (pendingTrips is null || pendingTrips.Count == 0)
+        {
+            return;
+        }
+
+        var count = pendingTrips.Count;
+        await TripService.AddTripsAsync(pendingTrips);
+
+        pendingTrips = null;
+        message = $"{count} trip(s) saved.";
+        await LoadShiftAsync();
+    }
+
+    private void CancelImport()
+    {
+        pendingTrips = null;
+        message = null;
+    }
+}

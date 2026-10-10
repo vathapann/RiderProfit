@@ -5,6 +5,7 @@ using RiderProfit.Components;
 using RiderProfit.Components.Account;
 using RiderProfit.Data;
 using RiderProfit.Services;
+using RiderProfit.Services.Import;
 using RiderProfit.Services.Ocr;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,11 +51,15 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IPlatformService, PlatformService>();
 builder.Services.AddScoped<IShiftService, ShiftService>();
+builder.Services.AddScoped<ITripService, TripService>();
+
 // OCR for screenshot import. Endpoint and key come from user secrets ("AzureVision" section).
 builder.Services.Configure<AzureVisionOptions>(
     builder.Configuration.GetSection(AzureVisionOptions.SectionName)
 );
 builder.Services.AddSingleton<IOcrService, AzureVisionOcrService>();
+builder.Services.AddSingleton<UberEatsScreenshotParser>();
+builder.Services.AddScoped<ITripImporter, UberEatsScreenshotImporter>();
 
 var app = builder.Build();
 

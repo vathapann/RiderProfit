@@ -18,6 +18,24 @@ public class ShiftService(IDbContextFactory<ApplicationDbContext> dbFactory) : I
             .ToListAsync();
     }
 
+    // public async Task<Shift?> GetShiftAsync(string userId, int shiftId)
+    // {
+    //     await using var db = await dbFactory.CreateDbContextAsync();
+    //     return await db.Shifts.FirstOrDefaultAsync(s => s.Id == shiftId && s.UserId == userId);
+    // }
+
+    // Returns the shift with its trips only if it belongs to this rider, otherwise null.
+    // Filtering by userId stops riders opening another rider's shift by changing the URL.
+    public async Task<Shift?> GetShiftAsync(int id, string userId)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await db
+            .Shifts.Include(s => s.Platform)
+            .Include(s => s.Vehicle)
+            .Include(s => s.Trips)
+            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
+    }
+
     public async Task AddShiftAsync(Shift shift)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
