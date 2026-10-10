@@ -450,6 +450,9 @@ namespace RiderProfit.Migrations
                     b.Property<decimal>("BatteryCapacity")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("ElectricityPricePerKwh")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("EnergyConsumption")
                         .HasColumnType("TEXT");
 

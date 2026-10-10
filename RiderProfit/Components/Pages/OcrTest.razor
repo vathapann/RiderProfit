@@ -1,0 +1,95 @@
+@page "/ocr-test"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using RiderProfit.Services.Ocr
+@inject IOcrService OcrService
+
+@* Developer tool: shows the raw text Azure AI Vision reads from a screenshot,
+   used to design the Uber Eats trip parser. Not linked from the menu. *@
+
+<PageTitle>OCR Test</PageTitle>
+
+<h1>OCR Test</h1>
+<p class="text-muted">Upload an Uber Eats "Earnings activity" screenshot to see the text lines Azure reads from it.</p>
+
+@if (!OcrService.IsConfigured)
+{
+    <div class="alert alert-warning" role="alert">
+        Screenshot reading is unavailable: Azure AI Vision is not configured on this machine.
+    </div>
+}
+else
+{
+    <div class="mb-3">
+        <InputFile OnChange="ReadScreenshotAsync" accept="image/png,image/jpeg" class="form-control" disabled="@isReading" />
+    </div>
+
+    @if (isReading)
+    {
+        <p><em>Reading screenshot...</em></p>
+    }
+
+    @if (errorMessage is not null)
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
+
+    @if (lines is not null)
+    {
+        <p>@lines.Count lines found.</p>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-end">Top (px)</th>
+                        <th class="text-end">Left (px)</th>
+                        <th>Text</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in lines)
+                    {
+                        <tr>
+                            <td class="text-end">@line.Top</td>
+                            <td class="text-end">@line.Left</td>
+                            <td>@line.Text</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    // Azure AI Vision accepts images up to 20 MB; phone screenshots are far smaller
+    private const long MaxImageBytes = 10 * 1024 * 1024;
+
+    private List<OcrLine>? lines;
+    private bool isReading;
+    private string? errorMessage;
+
+    private async Task ReadScreenshotAsync(InputFileChangeEventArgs e)
+    {
+        lines = null;
+        errorMessage = null;
+        isReading = true;
+
+        try
+        {
+            await using var stream = e.File.OpenReadStream(MaxImageBytes);
+            lines = await OcrService.ReadLinesAsync(stream);
+        }
+        catch (IOException)
+        {
+            errorMessage = "The image is too large. Please upload a screenshot under 10 MB.";
+        }
+        catch (Azure.RequestFailedException ex)
+        {
+            errorMessage = $"Azure AI Vision couldn't read the image ({ex.Status}). Please try another screenshot.";
+        }
+        finally
+        {
+            isReading = false;
+        }
+    }
+}
