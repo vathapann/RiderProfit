@@ -49,6 +49,7 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IPlatformService, PlatformService>();
 builder.Services.AddScoped<IShiftService, ShiftService>();
+builder.Services.AddScoped<IExpenseService, ExpenseService>();
 var app = builder.Build();
 
 // Create or upgrade the database on startup so the app runs without manual setup
