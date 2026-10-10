@@ -1,5 +1,181 @@
 ﻿@page "/profit-dashboard"
+@rendermode InteractiveServer
+@using System.Linq
 
 <PageTitle>Profit Dashboard</PageTitle>
 
 <h1>Profit Dashboard</h1>
+<p class="text-muted">Sample data for UI testing. Database connection will be added later.</p>
+
+<div class="card p-3 mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">Date range</label>
+            <select class="form-select" @bind="selectedRange">
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+                <option value="custom">Custom</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Platform</label>
+            <select class="form-select" @bind="selectedPlatform">
+                <option value="All">All platforms</option>
+                <option value="Uber Eats">Uber Eats</option>
+                <option value="DoorDash">DoorDash</option>
+                <option value="Menulog">Menulog</option>
+            </select>
+        </div>
+        @if (selectedRange == "custom")
+        {
+            <div class="col-md-3"><label class="form-label">From</label><InputDate class="form-control" @bind-Value="startDate" /></div>
+            <div class="col-md-3"><label class="form-label">To</label><InputDate class="form-control" @bind-Value="endDate" /></div>
+        }
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Net profit (selected period)</div><h3>@Money(NetProfit)</h3></div></div>
+    <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Profit per hour</div><h3>@Money(ProfitPerHour)</h3></div></div>
+    <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Total earnings</div><h3>@Money(Earnings)</h3></div></div>
+    <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Total costs</div><h3>@Money(Costs)</h3></div></div>
+    <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Number of trips</div><h3>@Trips.Count</h3></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card p-3 h-100">
+            <h5>Profit per hour by platform</h5>
+            @foreach (var name in platforms)
+            {
+                var items = Trips.Where(t => t.Platform == name).ToList();
+                var value = Rate(items);
+                <div class="mt-3 d-flex justify-content-between"><span>@name</span><strong>@Money(value)/hr</strong></div>
+                <div class="progress" style="height:22px"><div class="progress-bar bg-success" style="width:@BarWidth(value, 30)%"></div></div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card p-3 h-100">
+            <h5>Profit per hour by day of week</h5>
+            @foreach (var day in days)
+            {
+                var value = Rate(Trips.Where(t => t.Date.DayOfWeek == day).ToList());
+                <div class="mt-2 d-flex justify-content-between"><span>@day</span><strong>@Money(value)/hr</strong></div>
+                <div class="progress" style="height:16px"><div class="progress-bar" style="width:@BarWidth(value, 30)%"></div></div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card p-3 h-100">
+            <h5>Profit per hour by time slot</h5>
+            @foreach (var slot in slots)
+            {
+                var value = Rate(Trips.Where(t => t.TimeSlot == slot).ToList());
+                <div class="mt-3 d-flex justify-content-between"><span>@slot</span><strong>@Money(value)/hr</strong></div>
+                <div class="progress" style="height:22px"><div class="progress-bar bg-info" style="width:@BarWidth(value, 30)%"></div></div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card p-3 h-100">
+            <h5>Net profit over time</h5>
+            @if (DailyProfits.Count == 0)
+            {
+                <p class="text-muted">No sample trips for this filter.</p>
+            }
+            else
+            {
+                <svg viewBox="0 0 500 210" style="width:100%;height:220px" role="img" aria-label="Net profit over time line chart">
+                    <line x1="35" y1="175" x2="485" y2="175" stroke="#aaa" />
+                    <line x1="35" y1="15" x2="35" y2="175" stroke="#aaa" />
+                    <polyline points="@LinePoints" fill="none" stroke="#198754" stroke-width="3" stroke-linejoin="round" />
+                    @for (int i = 0; i < DailyProfits.Count; i++)
+                    {
+                        var x = X(i); var y = Y(DailyProfits[i].Profit);
+                        <circle cx="@x" cy="@y" r="4" fill="#198754"><title>@DailyProfits[i].Date.ToString("dd MMM"): @Money(DailyProfits[i].Profit)</title></circle>
+                    }
+                    <text x="35" y="198" font-size="12">@DailyProfits.First().Date.ToString("dd MMM")</text>
+                    <text x="445" y="198" font-size="12">@DailyProfits.Last().Date.ToString("dd MMM")</text>
+                </svg>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    // Temporary sample data. Replace this list with database data later.
+    private class SampleTrip
+    {
+        public DateTime Date { get; set; }
+        public string Platform { get; set; } = "";
+        public string TimeSlot { get; set; } = "";
+        public decimal Earnings { get; set; }
+        public decimal Costs { get; set; }
+        public double Hours { get; set; }
+    }
+
+    private string selectedRange = "week";
+    private string selectedPlatform = "All";
+    private DateTime startDate = DateTime.Today.AddDays(-7);
+    private DateTime endDate = DateTime.Today;
+    private string[] platforms = { "Uber Eats", "DoorDash", "Menulog" };
+    private string[] slots = { "Breakfast", "Lunch", "Dinner", "Late night" };
+    private DayOfWeek[] days = { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
+
+    private List<SampleTrip> sampleTrips = new();
+
+    protected override void OnInitialized()
+    {
+        // Create sample trips across this month and last month.
+        var random = new Random(12);
+        for (int i = 0; i < 65; i++)
+        {
+            sampleTrips.Add(new SampleTrip
+            {
+                Date = DateTime.Today.AddDays(-random.Next(0, 40)),
+                Platform = platforms[i % platforms.Length],
+                TimeSlot = slots[i % slots.Length],
+                Earnings = random.Next(25, 95),
+                Costs = random.Next(4, 20),
+                Hours = random.Next(1, 5)
+            });
+        }
+    }
+
+    private List<SampleTrip> Trips
+    {
+        get
+        {
+            DateTime from = selectedRange == "week"
+                ? DateTime.Today.AddDays(-((int)DateTime.Today.DayOfWeek + 6) % 7)
+                : selectedRange == "month"
+                    ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
+                    : startDate.Date;
+            DateTime to = selectedRange == "custom" ? endDate.Date : DateTime.Today;
+            return sampleTrips.Where(t => t.Date.Date >= from && t.Date.Date <= to &&
+                (selectedPlatform == "All" || t.Platform == selectedPlatform)).ToList();
+        }
+    }
+
+    private decimal Earnings => Trips.Sum(t => t.Earnings);
+    private decimal Costs => Trips.Sum(t => t.Costs);
+    private decimal NetProfit => Earnings - Costs;
+    private double ProfitPerHour => Rate(Trips);
+    private double Rate(List<SampleTrip> items) => items.Sum(t => t.Hours) == 0 ? 0 : (double)items.Sum(t => t.Earnings - t.Costs) / items.Sum(t => t.Hours);
+    private string Money(decimal value) => value.ToString("C2", System.Globalization.CultureInfo.GetCultureInfo("en-AU"));
+    private string Money(double value) => value.ToString("C2", System.Globalization.CultureInfo.GetCultureInfo("en-AU"));
+    private double BarWidth(double value, double maximum) => Math.Clamp(value / maximum * 100, 0, 100);
+
+    private List<(DateTime Date, decimal Profit)> DailyProfits => Trips
+        .GroupBy(t => t.Date.Date).OrderBy(g => g.Key)
+        .Select(g => (Date: g.Key, Profit: g.Sum(t => t.Earnings - t.Costs))).ToList();
+
+    private double X(int index) => DailyProfits.Count < 2 ? 250 : 35 + index * 450.0 / (DailyProfits.Count - 1);
+    private double Y(decimal profit)
+    {
+        decimal max = Math.Max(1, DailyProfits.Max(d => d.Profit));
+        return 175 - (double)(profit / max) * 150;
+    }
+    private string LinePoints => string.Join(" ", DailyProfits.Select((d, i) => $"{X(i):0.0},{Y(d.Profit):0.0}"));
+}
