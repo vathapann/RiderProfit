@@ -9,5 +9,5 @@ public interface ITripService
 
     Task AddTripAsync(Trip trip);
     Task AddTripsAsync(IEnumerable<Trip> trips); // saves several trips at once, e.g. from a screenshot
-    // Task<bool> DeleteTripAsync(int id, string userId);
+    Task DeleteTripAsync(int id, string userId); // only deletes the rider's own trips
 }

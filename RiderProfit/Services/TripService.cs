@@ -28,4 +28,16 @@ public class TripService(IDbContextFactory<ApplicationDbContext> dbFactory) : IT
         db.Trips.AddRange(trips);
         await db.SaveChangesAsync();
     }
+
+    // Deletes the trip only if its shift belongs to this rider
+    public async Task DeleteTripAsync(int id, string userId)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.Shift!.UserId == userId);
+        if (trip is not null)
+        {
+            db.Trips.Remove(trip);
+            await db.SaveChangesAsync();
+        }
+    }
 }

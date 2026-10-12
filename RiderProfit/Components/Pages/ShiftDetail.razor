@@ -1,5 +1,6 @@
 @page "/shift-logging/{ShiftId:int}"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
 @using RiderProfit.Services.Import
 @* Services that load and save the rider's data *@
@@ -65,7 +66,73 @@ else
 
     <h2 class="h5">Trips</h2>
 
-    @* TODO: "Add trip manually" form *@
+    @* Manual entry: for any platform, and the fallback when screenshot import isn't available *@
+    <button type="button" class="btn btn-outline-primary mb-3" @onclick="ToggleTripForm">
+        @(showTripForm ? "Close manual entry" : "Add trip manually")
+    </button>
+
+    @if (showTripForm)
+    {
+        <EditForm Model="tripForm" OnValidSubmit="SaveManualTripAsync" FormName="add-trip" class="card card-body mb-4">
+            <DataAnnotationsValidator />
+
+            @* Required details *@
+            <div class="row g-3">
+                <div class="col-sm-6 col-lg-3">
+                    <label for="trip-time" class="form-label">Start time</label>
+                    <input id="trip-time" type="time" class="form-control" @bind="tripForm.Time" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label for="trip-duration" class="form-label">Duration (minutes)</label>
+                    <InputNumber id="trip-duration" class="form-control" @bind-Value="tripForm.DurationMinutes" />
+                    <ValidationMessage For="() => tripForm.DurationMinutes" class="text-danger" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label for="trip-distance" class="form-label">Distance (km)</label>
+                    <InputNumber id="trip-distance" class="form-control" @bind-Value="tripForm.DistanceKm" />
+                    <ValidationMessage For="() => tripForm.DistanceKm" class="text-danger" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label for="trip-earnings" class="form-label">Earnings ($)</label>
+                    <InputNumber id="trip-earnings" class="form-control" @bind-Value="tripForm.Earnings" />
+                    <ValidationMessage For="() => tripForm.Earnings" class="text-danger" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label for="trip-tips" class="form-label">Tips ($)</label>
+                    <InputNumber id="trip-tips" class="form-control" @bind-Value="tripForm.Tips" placeholder="0 if none" />
+                    <ValidationMessage For="() => tripForm.Tips" class="text-danger" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label for="trip-pickup-suburb" class="form-label">Pickup suburb</label>
+                    <InputText id="trip-pickup-suburb" class="form-control" @bind-Value="tripForm.PickupSuburb" placeholder="e.g. Miranda" />
+                    <ValidationMessage For="() => tripForm.PickupSuburb" class="text-danger" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label for="trip-suburb" class="form-label">Drop-off suburb</label>
+                    <InputText id="trip-suburb" class="form-control" @bind-Value="tripForm.DropoffSuburb" placeholder="e.g. Caringbah" />
+                    <ValidationMessage For="() => tripForm.DropoffSuburb" class="text-danger" />
+                </div>
+            </div>
+
+            @* Optional details *@
+            <div class="row g-3 mt-1">
+                <div class="col-sm-6 col-lg-3">
+                    <label for="trip-pickup" class="form-label">Pickup name <span class="text-muted">(optional)</span></label>
+                    <InputText id="trip-pickup" class="form-control" @bind-Value="tripForm.PickupName" placeholder="e.g. Harris Farm (Miranda)" />
+                    <ValidationMessage For="() => tripForm.PickupName" class="text-danger" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label for="trip-dropoff" class="form-label">Drop-off street <span class="text-muted">(optional)</span></label>
+                    <InputText id="trip-dropoff" class="form-control" @bind-Value="tripForm.DropoffName" placeholder="Street only, no house number" />
+                    <ValidationMessage For="() => tripForm.DropoffName" class="text-danger" />
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Save trip</button>
+            </div>
+        </EditForm>
+    }
 
     @* Screenshot import: only for platforms the importer understands, and only when OCR is set up *@
     @if (shift.Platform?.Name == TripImporter.PlatformName)
@@ -106,7 +173,11 @@ else
         <div class="card border-primary mb-4">
             <div class="card-body">
                 <h3 class="h6">Check these trips before saving</h3>
-                <p class="text-muted small">Remove any trip that was read incorrectly. You can add it manually instead.</p>
+                <p class="text-muted small">
+                    Remove any trip that was read incorrectly; you can add it manually instead.
+                    The screenshot usually shows a restaurant name rather than an address, so fill in the
+                    pickup suburb where it's missing. Suburbs help the shift planner learn which areas pay best.
+                </p>
 
                 <div class="table-responsive">
                     <table class="table table-sm align-middle">
@@ -114,7 +185,9 @@ else
                             <tr>
                                 <th>Time</th>
                                 <th>Pickup</th>
+                                <th>Pickup suburb</th>
                                 <th>Drop-off</th>
+                                <th>Drop-off suburb</th>
                                 <th class="text-end">Distance</th>
                                 <th class="text-end">Duration</th>
                                 <th class="text-end">Earnings</th>
@@ -127,7 +200,16 @@ else
                                 <tr>
                                     <td>@trip.StartTime.ToString("h:mm tt")</td>
                                     <td>@trip.PickupName</td>
-                                    <td>@trip.DropoffName, @trip.DropoffSuburb</td>
+                                    <td>
+                                        @* Editable: the parser can only find it when the pickup is an address *@
+                                        <input class="form-control form-control-sm" maxlength="100" placeholder="Add suburb"
+                                               aria-label="Pickup suburb for @trip.PickupName" @bind="trip.PickupSuburb" />
+                                    </td>
+                                    <td>@trip.DropoffName</td>
+                                    <td>
+                                        <input class="form-control form-control-sm" maxlength="100" placeholder="Add suburb"
+                                               aria-label="Drop-off suburb for @trip.DropoffName" @bind="trip.DropoffSuburb" />
+                                    </td>
                                     <td class="text-end">@trip.DistanceKm.ToString("0.00") km</td>
                                     <td class="text-end">@((int)trip.Duration.TotalMinutes) min</td>
                                     <td class="text-end">@trip.Earnings.ToString("C")</td>
@@ -160,10 +242,12 @@ else
                     <tr>
                         <th>Time</th>
                         <th>Pickup</th>
-                        <th>Drop-off</th>
+                        <th>Pickup suburb</th>
+                        <th>Drop-off suburb</th>
                         <th class="text-end">Distance</th>
                         <th class="text-end">Earnings</th>
                         <th class="text-end">Tips</th>
+                        <th><span class="visually-hidden">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -172,10 +256,15 @@ else
                         <tr>
                             <td>@trip.StartTime.ToString("h:mm tt")</td>
                             <td>@trip.PickupName</td>
+                            <td>@trip.PickupSuburb</td>
                             <td>@trip.DropoffSuburb</td>
                             <td class="text-end">@trip.DistanceKm.ToString("0.0") km</td>
                             <td class="text-end">@trip.Earnings.ToString("C")</td>
                             <td class="text-end">@trip.Tips.ToString("C")</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => DeleteTripAsync(trip.Id)">Delete</button>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -228,6 +317,17 @@ else
             // null if the shift doesn't exist or belongs to another rider
             shift = await ShiftService.GetShiftAsync(ShiftId, userId);
         }
+    }
+
+    private async Task DeleteTripAsync(int tripId)
+    {
+        if (userId is null)
+        {
+            return;
+        }
+
+        await TripService.DeleteTripAsync(tripId, userId);
+        await LoadShiftAsync();
     }
 
     // Reads the uploaded screenshot and shows the trips found for review
@@ -297,5 +397,104 @@ else
     {
         pendingTrips = null;
         message = null;
+    }
+
+    // Manual trip entry state
+    private bool showTripForm;
+    private TripForm tripForm = new TripForm();
+
+    private void ToggleTripForm()
+    {
+        showTripForm = !showTripForm;
+        message = null;
+        errorMessage = null;
+    }
+
+    // Runs only when every validation rule on the trip form passes
+    private async Task SaveManualTripAsync()
+    {
+        if (shift is null)
+        {
+            return;
+        }
+
+        message = null;
+        errorMessage = null;
+
+        var trip = tripForm.ToTrip(shift);
+
+        // A rule involving the shift, which attributes on the form can't check
+        if (trip.StartTime < shift.StartTime || trip.StartTime > shift.EndTime)
+        {
+            errorMessage = $"The trip must start during the shift ({shift.StartTime:h:mm tt} – {shift.EndTime:h:mm tt}).";
+            return;
+        }
+
+        await TripService.AddTripAsync(trip);
+
+        message = "Trip saved.";
+        tripForm = new TripForm { Time = tripForm.Time };
+        await LoadShiftAsync();
+    }
+
+    // Holds what the rider types in; ToTrip() turns it into a Trip on the shift's date.
+    private class TripForm
+    {
+        public TimeOnly Time { get; set; } = new(18, 0);
+
+        [Required(ErrorMessage = "Enter the trip's duration.")]
+        [Range(1, 300, ErrorMessage = "Enter a duration between 1 and 300 minutes.")]
+        public int? DurationMinutes { get; set; }
+
+        [Required(ErrorMessage = "Enter the trip's distance.")]
+        [Range(0.1, 200, ErrorMessage = "Enter a distance between 0.1 and 200 km.")]
+        public decimal? DistanceKm { get; set; }
+
+        [Required(ErrorMessage = "Enter the trip's earnings.")]
+        [Range(0.01, 1000, ErrorMessage = "Enter earnings between $0.01 and $1,000.")]
+        public decimal? Earnings { get; set; }
+
+        [Required(ErrorMessage = "Enter the tips, or 0 if there were none.")]
+        [Range(0, 1000, ErrorMessage = "Tips must be between $0 and $1,000.")]
+        public decimal? Tips { get; set; }
+
+        [Required(ErrorMessage = "Enter the pickup suburb."), StringLength(100)]
+        public string PickupSuburb { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Enter the drop-off suburb."), StringLength(100)]
+        public string DropoffSuburb { get; set; } = string.Empty;
+
+        [StringLength(150)]
+        public string PickupName { get; set; } = string.Empty;
+
+        [StringLength(150)]
+        public string DropoffName { get; set; } = string.Empty;
+
+        public Trip ToTrip(Shift shift)
+        {
+            // For a shift that runs past midnight, a time earlier than the shift start is on the next day
+            var date = shift.StartTime.Date;
+            if (shift.EndTime.Date > shift.StartTime.Date && Time.ToTimeSpan() < shift.StartTime.TimeOfDay)
+            {
+                date = date.AddDays(1);
+            }
+
+            var start = date + Time.ToTimeSpan();
+
+            // Only called after validation, so the required numbers have values
+            return new Trip
+            {
+                ShiftId = shift.Id,
+                StartTime = start,
+                EndTime = start.AddMinutes(DurationMinutes!.Value),
+                Earnings = Earnings!.Value,
+                Tips = Tips!.Value,
+                DistanceKm = DistanceKm!.Value,
+                PickupName = PickupName.Trim(),
+                PickupSuburb = PickupSuburb.Trim(),
+                DropoffName = DropoffName.Trim(),
+                DropoffSuburb = DropoffSuburb.Trim(),
+            };
+        }
     }
 }
