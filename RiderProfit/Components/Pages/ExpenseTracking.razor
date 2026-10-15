@@ -3,7 +3,8 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
 @* Service that load and save rider's data *@
-@inject IExpenseService ExpenseService
+@* Interface - page depends on IExpenseService, not the concrete class*@
+@inject IExpenseService ExpenseService 
 
 
 <PageTitle>Expense Tracking</PageTitle>
@@ -65,14 +66,14 @@ else
         @* The rider's expenses, latest first *@
         <div class="col-lg-8">
             <h2 class="h5">My expenses</h2>
-            @if(expenses.Count ==0 || expenses == null)
+            @if(expenses.Count == 0)
             {
                 <p>No expenses yet. Add expense using the form.</p>
             }
             else
             {
                 <div class="table-responsive">
-                    <table class="table table-sm table-striped align-middle w-25">
+                    <table class="table table-sm table-striped align-middle w-75">
                         <thead>
                             <tr>
                                 <th>Date</th>
@@ -89,6 +90,10 @@ else
                                     <td>@expense.Category</td>
                                     <td class="text-end text-nowrap">@expense.Amount.ToString("C")</td>
                                     <td class="text-center">@expense.Description</td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outlne-danger"
+                                            @onclick="() => DeleteExpenseAsync(expense.Id)">Delete</button>
+                                    </td>
                                     
                                 </tr>
                             }
@@ -119,6 +124,7 @@ else
     private string? message; 
     private string? errorMessage;
 
+    // Load this rider's expenses once when the page opens
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthState).User;
@@ -156,22 +162,52 @@ else
         }
     }
 
+    private async Task DeleteExpenseAsync(int expenseId)
+    {
+        message = null; 
+        errorMessage = null;
+        if (userId == null)
+        {
+            return;
+        }
+        try
+        {
+            // true = deleted; false = not found or not this rider's expense
+            var deleted = await ExpenseService.DeleteExpenseAsync(expenseId, userId);
+            if(deleted)
+            {
+                message = "Expense deleted";
+            }
+            else
+            {
+                errorMessage = "Could not find that expense";
+            }
+            // Refresh the table to match database
+            expenses = await ExpenseService.GetExpensesAsync(userId);
+        }
+        catch (Exception) // unexpected failure, e.g. database error
+        {
+            errorMessage = "Could not delete the expense. Please try again";
+        }
+    }
+    // Holds what the rider types in.
     private class ExpenseForm
     {
         public DateOnly Date {get; set;} = DateOnly.FromDateTime(DateTime.Today);
         public ExpenseCategory Category {get; set;} = ExpenseCategory.Tolls;
         [Required(ErrorMessage = "Enter the amount")]
         [Range(0.01, 100000, ErrorMessage = "Enter an amount between $0.01 and $100,000")]
-        public decimal Amount {get; set;}
+        public decimal? Amount {get; set;}
         [StringLength(200, ErrorMessage = "Descrption cannot be more than 200")]
         public string Description {get; set;} = string.Empty;
+        // turns it into an Expense entity 
         public Expense ToExpenses(string userId)
         {
             return new Expense
             {
                 UserId = userId,
                 Category = Category,
-                Amount = Amount,
+                Amount = Amount!.Value,
                 Date = Date.ToDateTime(TimeOnly.MinValue),
                 Description = Description.Trim(),
             };
