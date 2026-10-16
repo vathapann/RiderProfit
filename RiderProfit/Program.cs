@@ -5,8 +5,9 @@ using RiderProfit.Components;
 using RiderProfit.Components.Account;
 using RiderProfit.Data;
 using RiderProfit.Services;
+using RiderProfit.Services.ExternalAPIs;
+using RiderProfit.Services.ExternalAPIs.Ocr;
 using RiderProfit.Services.Import;
-using RiderProfit.Services.Ocr;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,6 +63,21 @@ builder.Services.AddSingleton<UberEatsScreenshotParser>();
 builder.Services.AddScoped<ITripImporter, UberEatsScreenshotImporter>();
 
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
+
+// Trip conditions (public holidays and rain) from free APIs that need no key.
+// Results are cached in memory so repeated lookups don't call the APIs again.
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<IHolidayService, NagerHolidayService>(client =>
+{
+    client.BaseAddress = new Uri("https://date.nager.at/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddHttpClient<IWeatherService, OpenMeteoWeatherService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddScoped<ITripConditionsService, TripConditionsService>();
+
 var app = builder.Build();
 
 // Create or upgrade the database on startup so the app runs without manual setup

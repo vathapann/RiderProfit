@@ -2,7 +2,7 @@ using Azure;
 using Azure.AI.Vision.ImageAnalysis;
 using Microsoft.Extensions.Options;
 
-namespace RiderProfit.Services.Ocr;
+namespace RiderProfit.Services.ExternalAPIs.Ocr;
 
 // Reads text from images using the Azure AI Vision "Read" (OCR) feature.
 public class AzureVisionOcrService : IOcrService

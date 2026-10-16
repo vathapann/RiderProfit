@@ -1,4 +1,4 @@
-namespace RiderProfit.Services.Ocr;
+namespace RiderProfit.Services.ExternalAPIs.Ocr;
 
 // Reads the text in an image (OCR). Pages and importers depend on this interface,
 // so the OCR provider (currently Azure AI Vision) can be swapped without changing them.
