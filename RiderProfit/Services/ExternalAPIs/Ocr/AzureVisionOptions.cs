@@ -1,4 +1,4 @@
-namespace RiderProfit.Services.Ocr;
+namespace RiderProfit.Services.ExternalAPIs.Ocr;
 
 // Settings for Azure AI Vision, read from the "AzureVision" configuration section.
 // Store them with user secrets, never in appsettings.json:
