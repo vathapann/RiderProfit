@@ -1,181 +1,278 @@
 ﻿@page "/profit-dashboard"
 @rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using System.Linq
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using RiderProfit.Models
+@using RiderProfit.Services
+@inject IShiftService ShiftService
+@inject IExpenseService ExpenseService
+@inject IPlatformService PlatformService
 
 <PageTitle>Profit Dashboard</PageTitle>
-
 <h1>Profit Dashboard</h1>
-<p class="text-muted">Sample data for UI testing. Database connection will be added later.</p>
+<p class="text-muted">Your earnings, expenses and estimated profit from recorded shifts.</p>
 
-<div class="card p-3 mb-4">
-    <div class="row g-3 align-items-end">
-        <div class="col-md-3">
-            <label class="form-label">Date range</label>
-            <select class="form-select" @bind="selectedRange">
-                <option value="week">This week</option>
-                <option value="month">This month</option>
-                <option value="custom">Custom</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Platform</label>
-            <select class="form-select" @bind="selectedPlatform">
-                <option value="All">All platforms</option>
-                <option value="Uber Eats">Uber Eats</option>
-                <option value="DoorDash">DoorDash</option>
-                <option value="Menulog">Menulog</option>
-            </select>
-        </div>
-        @if (selectedRange == "custom")
-        {
-            <div class="col-md-3"><label class="form-label">From</label><InputDate class="form-control" @bind-Value="startDate" /></div>
-            <div class="col-md-3"><label class="form-label">To</label><InputDate class="form-control" @bind-Value="endDate" /></div>
-        }
-    </div>
-</div>
-
-<div class="row g-3 mb-4">
-    <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Net profit (selected period)</div><h3>@Money(NetProfit)</h3></div></div>
-    <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Profit per hour</div><h3>@Money(ProfitPerHour)</h3></div></div>
-    <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Total earnings</div><h3>@Money(Earnings)</h3></div></div>
-    <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Total costs</div><h3>@Money(Costs)</h3></div></div>
-    <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Number of trips</div><h3>@Trips.Count</h3></div></div>
-</div>
-
-<div class="row g-3">
-    <div class="col-lg-6">
-        <div class="card p-3 h-100">
-            <h5>Profit per hour by platform</h5>
-            @foreach (var name in platforms)
-            {
-                var items = Trips.Where(t => t.Platform == name).ToList();
-                var value = Rate(items);
-                <div class="mt-3 d-flex justify-content-between"><span>@name</span><strong>@Money(value)/hr</strong></div>
-                <div class="progress" style="height:22px"><div class="progress-bar bg-success" style="width:@BarWidth(value, 30)%"></div></div>
-            }
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card p-3 h-100">
-            <h5>Profit per hour by day of week</h5>
-            @foreach (var day in days)
-            {
-                var value = Rate(Trips.Where(t => t.Date.DayOfWeek == day).ToList());
-                <div class="mt-2 d-flex justify-content-between"><span>@day</span><strong>@Money(value)/hr</strong></div>
-                <div class="progress" style="height:16px"><div class="progress-bar" style="width:@BarWidth(value, 30)%"></div></div>
-            }
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card p-3 h-100">
-            <h5>Profit per hour by time slot</h5>
-            @foreach (var slot in slots)
-            {
-                var value = Rate(Trips.Where(t => t.TimeSlot == slot).ToList());
-                <div class="mt-3 d-flex justify-content-between"><span>@slot</span><strong>@Money(value)/hr</strong></div>
-                <div class="progress" style="height:22px"><div class="progress-bar bg-info" style="width:@BarWidth(value, 30)%"></div></div>
-            }
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card p-3 h-100">
-            <h5>Net profit over time</h5>
-            @if (DailyProfits.Count == 0)
-            {
-                <p class="text-muted">No sample trips for this filter.</p>
-            }
-            else
-            {
-                <svg viewBox="0 0 500 210" style="width:100%;height:220px" role="img" aria-label="Net profit over time line chart">
-                    <line x1="35" y1="175" x2="485" y2="175" stroke="#aaa" />
-                    <line x1="35" y1="15" x2="35" y2="175" stroke="#aaa" />
-                    <polyline points="@LinePoints" fill="none" stroke="#198754" stroke-width="3" stroke-linejoin="round" />
-                    @for (int i = 0; i < DailyProfits.Count; i++)
+@if (loading)
+{
+    <p>Loading dashboard...</p>
+}
+else if (errorMessage is not null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else
+{
+    <div class="card p-3 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Date range</label>
+                <select class="form-select" @bind="selectedRange">
+                    <option value="week">This week</option>
+                    <option value="month">This month</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Platform</label>
+                <select class="form-select" @bind="selectedPlatform">
+                    <option value="0">All platforms</option>
+                    @foreach (var platform in platforms)
                     {
-                        var x = X(i); var y = Y(DailyProfits[i].Profit);
-                        <circle cx="@x" cy="@y" r="4" fill="#198754"><title>@DailyProfits[i].Date.ToString("dd MMM"): @Money(DailyProfits[i].Profit)</title></circle>
+                        <option value="@platform.Id">@platform.Name</option>
                     }
-                    <text x="35" y="198" font-size="12">@DailyProfits.First().Date.ToString("dd MMM")</text>
-                    <text x="445" y="198" font-size="12">@DailyProfits.Last().Date.ToString("dd MMM")</text>
-                </svg>
+                </select>
+            </div>
+            @if (selectedRange == "custom")
+            {
+                <div class="col-md-3">
+                    <label class="form-label">From</label>
+                    <InputDate class="form-control" @bind-Value="startDate" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To</label>
+                    <InputDate class="form-control" @bind-Value="endDate" />
+                </div>
             }
         </div>
     </div>
-</div>
+
+    @if (selectedRange == "custom" && startDate.Date > endDate.Date)
+    {
+        <div class="alert alert-warning">The From date must be before or equal to the To date.</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Net profit (selected period)</div><h3>@Money(NetProfit)</h3></div></div>
+            <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Profit per hour</div><h3>@Money(ProfitPerHour)</h3></div></div>
+            <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Total earnings</div><h3>@Money(Earnings)</h3></div></div>
+            <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Total costs</div><h3>@Money(Costs)</h3></div></div>
+            <div class="col-md"><div class="card p-3 h-100"><div class="text-muted small">Number of trips</div><h3>@TripCount</h3></div></div>
+        </div>
+
+        @if (selectedPlatform != 0)
+        {
+            <p class="text-muted small">For a selected platform, only expenses linked to its shifts are included. Unlinked expenses are shown under All platforms.</p>
+        }
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="card p-3 h-100">
+                    <h5>Profit per hour by platform</h5>
+                    @foreach (var platform in VisiblePlatforms)
+                    {
+                        var rate = Rate(FilteredShifts.Where(s => s.PlatformId == platform.Id).ToList());
+                        <div class="mt-3 d-flex justify-content-between"><span>@platform.Name</span><strong>@Money(rate)/hr</strong></div>
+                        <div class="progress" style="height:22px"><div class="progress-bar bg-success" style="width:@BarWidth(rate)%"></div></div>
+                    }
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card p-3 h-100">
+                    <h5>Profit per hour by day of week</h5>
+                    @foreach (var day in days)
+                    {
+                        var rate = Rate(FilteredShifts.Where(s => s.StartTime.DayOfWeek == day).ToList());
+                        <div class="mt-2 d-flex justify-content-between"><span>@day</span><strong>@Money(rate)/hr</strong></div>
+                        <div class="progress" style="height:16px"><div class="progress-bar" style="width:@BarWidth(rate)%"></div></div>
+                    }
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card p-3 h-100">
+                    <h5>Profit per hour by time slot</h5>
+                    @foreach (var slot in slots)
+                    {
+                        var rate = Rate(FilteredShifts.Where(s => TimeSlot(s.StartTime) == slot).ToList());
+                        <div class="mt-3 d-flex justify-content-between"><span>@slot</span><strong>@Money(rate)/hr</strong></div>
+                        <div class="progress" style="height:22px"><div class="progress-bar bg-info" style="width:@BarWidth(rate)%"></div></div>
+                    }
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card p-3 h-100">
+                    <h5>Net profit over time</h5>
+                    @if (DailyProfits.Count == 0)
+                    {
+                        <p class="text-muted">No recorded data for this filter.</p>
+                    }
+                    else
+                    {
+                        <svg viewBox="0 0 500 210" style="width:100%;height:220px" role="img" aria-label="Net profit over time line chart">
+                            <line x1="35" y1="175" x2="485" y2="175" stroke="#aaa" />
+                            <line x1="35" y1="15" x2="35" y2="175" stroke="#aaa" />
+                            <polyline points="@LinePoints" fill="none" stroke="#198754" stroke-width="3" stroke-linejoin="round" />
+                            @for (int i = 0; i < DailyProfits.Count; i++)
+                            {
+                                var x = X(i);
+                                var y = Y(DailyProfits[i].Profit);
+                                <circle cx="@x" cy="@y" r="4" fill="#198754">
+                                    <title>@DailyProfits[i].Date.ToString("dd MMM"): @Money(DailyProfits[i].Profit)</title>
+                                </circle>
+                            }
+                            <text x="35" y="198" font-size="12">@DailyProfits.First().Date.ToString("dd MMM")</text>
+                            <text x="445" y="198" font-size="12">@DailyProfits.Last().Date.ToString("dd MMM")</text>
+                        </svg>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}
 
 @code {
-    // Temporary sample data. Replace this list with database data later.
-    private class SampleTrip
-    {
-        public DateTime Date { get; set; }
-        public string Platform { get; set; } = "";
-        public string TimeSlot { get; set; } = "";
-        public decimal Earnings { get; set; }
-        public decimal Costs { get; set; }
-        public double Hours { get; set; }
-    }
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private bool loading = true;
+    private string? errorMessage;
+    private List<Shift> shifts = new();
+    private List<Expense> expenses = new();
+    private List<Platform> platforms = new();
 
     private string selectedRange = "week";
-    private string selectedPlatform = "All";
+    private int selectedPlatform = 0;
     private DateTime startDate = DateTime.Today.AddDays(-7);
     private DateTime endDate = DateTime.Today;
-    private string[] platforms = { "Uber Eats", "DoorDash", "Menulog" };
-    private string[] slots = { "Breakfast", "Lunch", "Dinner", "Late night" };
-    private DayOfWeek[] days = { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
 
-    private List<SampleTrip> sampleTrips = new();
+    private readonly string[] slots = { "Breakfast", "Lunch", "Dinner", "Late night" };
+    private readonly DayOfWeek[] days = { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // Create sample trips across this month and last month.
-        var random = new Random(12);
-        for (int i = 0; i < 65; i++)
+        try
         {
-            sampleTrips.Add(new SampleTrip
+            var user = (await AuthState).User;
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
             {
-                Date = DateTime.Today.AddDays(-random.Next(0, 40)),
-                Platform = platforms[i % platforms.Length],
-                TimeSlot = slots[i % slots.Length],
-                Earnings = random.Next(25, 95),
-                Costs = random.Next(4, 20),
-                Hours = random.Next(1, 5)
-            });
+                errorMessage = "Please log in to view your dashboard.";
+                return;
+            }
+
+            shifts = await ShiftService.GetShiftsAsync(userId);
+            expenses = await ExpenseService.GetExpensesAsync(userId);
+            platforms = await PlatformService.GetPlatformsAsync(userId);
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not load dashboard data. Please try again.";
+        }
+        finally
+        {
+            loading = false;
         }
     }
 
-    private List<SampleTrip> Trips
+    private DateTime FromDate => selectedRange switch
+    {
+        "week" => DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7)),
+        "month" => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1),
+        _ => startDate.Date
+    };
+
+    private DateTime ToDate => selectedRange == "custom" ? endDate.Date : DateTime.Today;
+
+    private List<Shift> FilteredShifts => shifts.Where(s =>
+        s.StartTime.Date >= FromDate && s.StartTime.Date <= ToDate &&
+        (selectedPlatform == 0 || s.PlatformId == selectedPlatform)).ToList();
+
+    private List<Expense> FilteredExpenses
     {
         get
         {
-            DateTime from = selectedRange == "week"
-                ? DateTime.Today.AddDays(-((int)DateTime.Today.DayOfWeek + 6) % 7)
-                : selectedRange == "month"
-                    ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
-                    : startDate.Date;
-            DateTime to = selectedRange == "custom" ? endDate.Date : DateTime.Today;
-            return sampleTrips.Where(t => t.Date.Date >= from && t.Date.Date <= to &&
-                (selectedPlatform == "All" || t.Platform == selectedPlatform)).ToList();
+            var shiftIds = FilteredShifts.Select(s => s.Id).ToHashSet();
+            return expenses.Where(e =>
+                e.Date.Date >= FromDate && e.Date.Date <= ToDate &&
+                (selectedPlatform == 0 || (e.ShiftId.HasValue && shiftIds.Contains(e.ShiftId.Value)))).ToList();
         }
     }
 
-    private decimal Earnings => Trips.Sum(t => t.Earnings);
-    private decimal Costs => Trips.Sum(t => t.Costs);
+    private List<Platform> VisiblePlatforms => selectedPlatform == 0
+        ? platforms
+        : platforms.Where(p => p.Id == selectedPlatform).ToList();
+
+    private static decimal RunningCost(Shift shift) =>
+        shift.Vehicle is null ? 0m : shift.TotalDistanceKm * shift.Vehicle.CostPerKm();
+
+    private decimal Earnings => FilteredShifts.Sum(s => s.Earnings);
+    private decimal Costs => FilteredExpenses.Sum(e => e.Amount) + FilteredShifts.Sum(RunningCost);
     private decimal NetProfit => Earnings - Costs;
-    private double ProfitPerHour => Rate(Trips);
-    private double Rate(List<SampleTrip> items) => items.Sum(t => t.Hours) == 0 ? 0 : (double)items.Sum(t => t.Earnings - t.Costs) / items.Sum(t => t.Hours);
+    private int TripCount => FilteredShifts.Sum(s => s.TripCount);
+    private double WorkingHours => FilteredShifts.Sum(s => Math.Max(0, s.Duration.TotalHours));
+    private double ProfitPerHour => WorkingHours == 0 ? 0 : (double)NetProfit / WorkingHours;
+
+    private double Rate(List<Shift> items)
+    {
+        var hours = items.Sum(s => Math.Max(0, s.Duration.TotalHours));
+        if (hours == 0) return 0;
+
+        var ids = items.Select(s => s.Id).ToHashSet();
+        var recordedCosts = FilteredExpenses.Where(e => e.ShiftId.HasValue && ids.Contains(e.ShiftId.Value)).Sum(e => e.Amount);
+        var vehicleCosts = items.Sum(RunningCost);
+        return (double)(items.Sum(s => s.Earnings) - recordedCosts - vehicleCosts) / hours;
+    }
+
+    private static string TimeSlot(DateTime time) => time.Hour switch
+    {
+        >= 5 and < 11 => "Breakfast",
+        >= 11 and < 16 => "Lunch",
+        >= 16 and < 22 => "Dinner",
+        _ => "Late night"
+    };
+
     private string Money(decimal value) => value.ToString("C2", System.Globalization.CultureInfo.GetCultureInfo("en-AU"));
     private string Money(double value) => value.ToString("C2", System.Globalization.CultureInfo.GetCultureInfo("en-AU"));
-    private double BarWidth(double value, double maximum) => Math.Clamp(value / maximum * 100, 0, 100);
+    private static double BarWidth(double value) => Math.Clamp(value / 30 * 100, 0, 100);
 
-    private List<(DateTime Date, decimal Profit)> DailyProfits => Trips
-        .GroupBy(t => t.Date.Date).OrderBy(g => g.Key)
-        .Select(g => (Date: g.Key, Profit: g.Sum(t => t.Earnings - t.Costs))).ToList();
+    private List<(DateTime Date, decimal Profit)> DailyProfits
+    {
+        get
+        {
+            var dates = FilteredShifts.Select(s => s.StartTime.Date)
+                .Concat(FilteredExpenses.Select(e => e.Date.Date))
+                .Distinct().OrderBy(d => d).ToList();
+            return dates.Select(date =>
+            {
+                var dayShifts = FilteredShifts.Where(s => s.StartTime.Date == date);
+                var earnings = dayShifts.Sum(s => s.Earnings);
+                var runningCosts = dayShifts.Sum(RunningCost);
+                var recordedCosts = FilteredExpenses.Where(e => e.Date.Date == date).Sum(e => e.Amount);
+                return (Date: date, Profit: earnings - runningCosts - recordedCosts);
+            }).ToList();
+        }
+    }
 
     private double X(int index) => DailyProfits.Count < 2 ? 250 : 35 + index * 450.0 / (DailyProfits.Count - 1);
     private double Y(decimal profit)
     {
-        decimal max = Math.Max(1, DailyProfits.Max(d => d.Profit));
-        return 175 - (double)(profit / max) * 150;
+        var values = DailyProfits.Select(d => d.Profit).Append(0m).ToList();
+        decimal min = values.Min();
+        decimal max = values.Max();
+        if (min == max) return 95;
+        return 175 - (double)((profit - min) / (max - min)) * 150;
     }
     private string LinePoints => string.Join(" ", DailyProfits.Select((d, i) => $"{X(i):0.0},{Y(d.Profit):0.0}"));
 }
