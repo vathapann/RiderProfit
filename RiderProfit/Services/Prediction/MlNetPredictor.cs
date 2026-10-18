@@ -50,7 +50,7 @@ public class MlNetPredictor : IShiftPredictor
                 Weekday = t.Date.DayOfWeek.ToString(),
                 HourOfDay = t.AcceptedTime.Hours,
                 RestaurantSuburb = string.IsNullOrWhiteSpace(t.RestaurantSuburb) ? "Unknown" : t.RestaurantSuburb,
-                EarningsPerHour = (float)((double)t.TotalAmount / (t.ActualDurationSec)/3600.0),
+                EarningsPerHour = (float)((double)t.TotalAmount / (t.ActualDurationSec/3600.0)),
             })
             .ToList();
     }
