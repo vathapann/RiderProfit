@@ -88,13 +88,33 @@ public partial class UberEatsScreenshotParser
                 var pickupText = afterDelivery[dropoffIndex - 1].Text.Trim();
                 var pickupAddress = AddressPattern().Match(pickupText);
 
-                // A pickup is usually a restaurant name; if it's an address, keep just the street and suburb
+                // A pickup is usually a restaurant name, e.g. "Harris Farm (Miranda)", where Uber Eats puts
+                // the suburb in brackets; if it's an address instead, keep just the street and suburb
                 trip.PickupName = pickupAddress.Success ? pickupAddress.Groups["street"].Value.Trim() : pickupText;
-                trip.PickupSuburb = pickupAddress.Success ? pickupAddress.Groups["suburb"].Value.Trim() : string.Empty;
+                trip.PickupSuburb = pickupAddress.Success
+                    ? pickupAddress.Groups["suburb"].Value.Trim()
+                    : ExtractPickupSuburb(pickupText);
             }
         }
 
         return trip;
+    }
+
+    // Uber Eats usually shows the store's suburb in brackets after its name: "Harris Farm (Miranda)" → "Miranda".
+    // Sometimes the brackets hold a street instead, e.g. "Black Label Cafe (Rocky Point Rd)"; those are ignored
+    // and the rider fills in the suburb while reviewing. Returns an empty string when there is no suburb.
+    public static string ExtractPickupSuburb(string pickupName)
+    {
+        var match = BracketPattern().Match(pickupName.Trim());
+        if (!match.Success)
+        {
+            return string.Empty;
+        }
+
+        var text = match.Groups["text"].Value.Trim();
+        var isStreetOrUnit = StreetSuffixPattern().IsMatch(text) || text.Any(char.IsDigit);
+
+        return isStreetOrUnit ? string.Empty : text;
     }
 
     // Groups OCR lines into screen rows, because a card's time can sit a pixel above its amount
@@ -163,4 +183,14 @@ public partial class UberEatsScreenshotParser
     // "Willarong Road, Caringbah NSW 2229, Australia" → street "Willarong Road", suburb "Caringbah"
     [GeneratedRegex(@"^(?<street>[^,]+),\s*(?<suburb>[A-Za-z' .-]+?)\s+(?:NSW|VIC|QLD|SA|WA|TAS|NT|ACT)\s+\d{4}")]
     private static partial Regex AddressPattern();
+
+    // The text in the last pair of brackets at the end: "Harris Farm (Miranda)" → "Miranda"
+    [GeneratedRegex(@"\((?<text>[^()]+)\)\s*$")]
+    private static partial Regex BracketPattern();
+
+    // Ends with a street type such as "Rocky Point Rd" or "King Street", so it's not a suburb
+    [GeneratedRegex(
+        @"\b(?:Rd|Road|St|Street|Ave|Avenue|Hwy|Highway|Pde|Parade|Dr|Drive|Ln|Lane|Pl|Place|Cres|Crescent|Blvd|Boulevard|Way|Tce|Terrace|Cct|Circuit|Ct|Court|Cl|Close|Gr|Grove|Esp|Esplanade|Sq|Square|Mall|Arcade|Plaza)\.?$",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex StreetSuffixPattern();
 }
