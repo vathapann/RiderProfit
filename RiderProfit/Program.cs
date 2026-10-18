@@ -63,6 +63,7 @@ builder.Services.AddSingleton<UberEatsScreenshotParser>();
 builder.Services.AddScoped<ITripImporter, UberEatsScreenshotImporter>();
 
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
+builder.Services.AddSingleton<IShiftPredictor, MlNetPredictor>();
 
 // Trip conditions (public holidays and rain) from free APIs that need no key.
 // Results are cached in memory so repeated lookups don't call the APIs again.
