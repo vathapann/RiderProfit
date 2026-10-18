@@ -5,6 +5,7 @@ using RiderProfit.Components;
 using RiderProfit.Components.Account;
 using RiderProfit.Data;
 using RiderProfit.Services;
+using RiderProfit.Services.Export;
 using RiderProfit.Services.ExternalAPIs;
 using RiderProfit.Services.ExternalAPIs.Ocr;
 using RiderProfit.Services.Import;
@@ -79,6 +80,10 @@ builder.Services.AddHttpClient<IWeatherService, OpenMeteoWeatherService>(client 
 });
 builder.Services.AddScoped<ITripConditionsService, TripConditionsService>();
 
+
+// Exports saved trips as CSV (same columns as MlData/rider_data.csv)
+builder.Services.AddScoped<ITripCsvExportService, TripCsvExportService>();
+
 var app = builder.Build();
 
 // Create or upgrade the database on startup so the app runs without manual setup
@@ -86,6 +91,21 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate();
+}
+
+// Command-line trip export:
+//   dotnet run --project RiderProfit -- export-trips <file.csv>
+// Writes every saved trip in the rider_data.csv format, then exits.
+if (args.Length > 0 && args[0] == "export-trips")
+{
+    var outputPath = Path.GetFullPath(args.Length > 1 ? args[1] : "trips-export.csv");
+
+    using var scope = app.Services.CreateScope();
+    var exporter = scope.ServiceProvider.GetRequiredService<ITripCsvExportService>();
+    await File.WriteAllTextAsync(outputPath, await exporter.ExportTripsAsync());
+
+    Console.WriteLine($"Exported trips to {outputPath}");
+    return;
 }
 
 // Configure the HTTP request pipeline.
