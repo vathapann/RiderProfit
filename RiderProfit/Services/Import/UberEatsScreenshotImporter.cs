@@ -1,5 +1,5 @@
 using RiderProfit.Models;
-using RiderProfit.Services.Ocr;
+using RiderProfit.Services.ExternalAPIs.Ocr;
 
 namespace RiderProfit.Services.Import;
 

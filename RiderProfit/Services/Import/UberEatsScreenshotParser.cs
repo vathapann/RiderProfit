@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using RiderProfit.Models;
-using RiderProfit.Services.Ocr;
+using RiderProfit.Services.ExternalAPIs.Ocr;
 
 namespace RiderProfit.Services.Import;
 
