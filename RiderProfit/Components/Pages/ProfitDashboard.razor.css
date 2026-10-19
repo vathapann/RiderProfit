@@ -1,0 +1,137 @@
+/* RiderProfit Profit Dashboard — presentation-only upgrade.
+   Place beside Components/Pages/ProfitDashboard.razor.
+   No services, models, calculations, or event handlers are changed. */
+
+:host { color: #17243b; }
+
+h1 {
+    font-size: clamp(1.9rem, 3vw, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -.045em;
+    color: #13243b;
+    margin-bottom: .4rem;
+}
+
+h1 + p { color: #64748b !important; font-size: .98rem; margin-bottom: 1.4rem; }
+
+.card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    box-shadow: 0 5px 22px rgba(18, 39, 68, .045);
+    transition: box-shadow .18s ease, transform .18s ease;
+}
+
+.card:hover { box-shadow: 0 9px 30px rgba(18, 39, 68, .075); }
+
+/* Filter toolbar */
+.card.mb-4 {
+    background: linear-gradient(135deg, #f8fbff 0%, #f1f7fc 100%);
+    border-color: #dbe7f0;
+    padding: 1.25rem !important;
+}
+
+.form-label {
+    color: #475569;
+    font-weight: 650;
+    font-size: .86rem;
+    margin-bottom: .5rem;
+}
+
+.form-control, .form-select {
+    min-height: 45px;
+    border: 1px solid #d8e1ea;
+    border-radius: 11px;
+    color: #26364c;
+    background-color: #fff;
+    box-shadow: none;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #1b8a7a;
+    box-shadow: 0 0 0 3px rgba(27, 138, 122, .12);
+}
+
+/* Five key metrics */
+.row.mb-4 > [class*="col"] > .card {
+    position: relative;
+    overflow: hidden;
+    padding: 1.2rem !important;
+    min-height: 126px;
+}
+
+.row.mb-4 > [class*="col"] > .card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #168b77;
+}
+
+.row.mb-4 > [class*="col"]:nth-child(2) > .card::before { background: #2779c9; }
+.row.mb-4 > [class*="col"]:nth-child(3) > .card::before { background: #25a985; }
+.row.mb-4 > [class*="col"]:nth-child(4) > .card::before { background: #e3a047; }
+.row.mb-4 > [class*="col"]:nth-child(5) > .card::before { background: #8a75cc; }
+
+.row.mb-4 > [class*="col"] .text-muted.small {
+    color: #64748b !important;
+    font-size: .83rem;
+    font-weight: 600;
+    margin-bottom: .5rem;
+}
+
+.row.mb-4 > [class*="col"] h3 {
+    color: #12253c;
+    font-size: clamp(1.5rem, 2vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -.04em;
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Charts */
+.row.g-3 > .col-lg-6 > .card { padding: 1.4rem !important; }
+.row.g-3 > .col-lg-6 > .card h5 {
+    font-weight: 750;
+    font-size: 1.06rem;
+    letter-spacing: -.02em;
+    color: #1b2d45;
+    margin-bottom: 1.2rem;
+}
+
+.progress {
+    background-color: #edf2f7;
+    border-radius: 99px;
+    overflow: hidden;
+    height: 12px !important;
+    margin-top: .35rem;
+    margin-bottom: .45rem;
+}
+
+.progress-bar { border-radius: 99px; background: #168b77; }
+.progress-bar.bg-success { background: #168b77 !important; }
+.progress-bar.bg-info { background: #28a8c5 !important; }
+
+.row.g-3 > .col-lg-6 strong {
+    color: #21344b;
+    font-variant-numeric: tabular-nums;
+}
+
+svg { max-width: 100%; }
+
+@media (max-width: 991.98px) {
+    .row.mb-4 > [class*="col"] > .card { min-height: 110px; }
+}
+
+@media (max-width: 575.98px) {
+    h1 { font-size: 1.8rem; }
+    .card.mb-4 { padding: 1rem !important; }
+    .row.g-3 > .col-lg-6 > .card { padding: 1rem !important; }
+    .row.mb-4 > [class*="col"] h3 { font-size: 1.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card { transition: none; }
+}
