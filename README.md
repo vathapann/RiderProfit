@@ -119,9 +119,7 @@ To start again with an empty database, stop the app and delete `RiderProfit/Data
 
 
 ## Nessessary Commands 
+### Adding API key for Azure Ocr Computer Vision
 
--> to Migrate new models
-dotnet ef migrations add {migration_msg} --project RiderProfit
-
--> build project
-dotnet build --project RiderProfit
+dotnet user-secrets set "AzureVision:Endpoint" "<endpoint>" --project RiderProfit
+dotnet user-secrets set "AzureVision:Key" "<KEY 1>" --project RiderProfit
