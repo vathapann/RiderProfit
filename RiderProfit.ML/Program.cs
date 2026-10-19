@@ -2,6 +2,11 @@
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.ML;
+// RiderProfit.ML: offline model evaluation (baseline, SDCA) using 5 fold cross validation.
+// Run "dotnet run --project RiderProfitML" to see the latest results.
+// The Shift Planner page currently uses the SDCA model only; the latest runs
+// (including FastTree) have not been connected to the Shift Planner.
+
 // joins path parts for different OS 
 var path = Path.Combine(AppContext.BaseDirectory, "rider_data.csv");
 var config = new CsvConfiguration(CultureInfo.GetCultureInfo("en-AU")); // read date from D/MM/YYYY to D MMM
@@ -42,7 +47,7 @@ var labels = rows.Select(r => r.EarningsPerHour).ToList();
 double mean = labels.Average();
 double baseRmse = Math.Sqrt(labels.Average(y => Math.Pow(y - mean, 2)));
 double baseMae = labels.Average(y => Math.Abs(y -mean));
-Console.WriteLine($"\nBaseline (always ${mean:F2}/h): RMSE={baseRmse:F2} MAE={baseMae:F2} R2=.0.00");
+Console.WriteLine($"\nBaseline (always ${mean:F2}/h): RMSE={baseRmse:F2} MAE={baseMae:F2} R2=0.00");
 
 // Pipeline: SDCA regression with 5-fold cross validation
 var pipeline = ml.Transforms.Categorical.OneHotEncoding("WeekdayEncoded", nameof(TripData.Weekday))
@@ -60,10 +65,28 @@ var cv = ml.Regression.CrossValidate(
     labelColumnName: nameof(TripData.EarningsPerHour),
     seed: 0);
 
+// FastTree Pipeline: tree based trainer, capture non-linear patterns (no normalisation needed)
+var treePipeline = ml.Transforms.Categorical.OneHotEncoding("WeekdayEncoded", nameof(TripData.Weekday))
+    .Append(ml.Transforms.Categorical.OneHotEncoding("SuburbEncoded", nameof(TripData.RestaurantSuburb)))
+    .Append(ml.Transforms.Concatenate("Featuees", "WeekdayEncoded", "SuburbEncoded", nameof(TripData.HourOfDay)))
+    .Append(ml.Regression.Trainers.FastTree(
+        labelColumnName: nameof(TripData.EarningsPerHour),
+        featureColumnName: "Features"));
+
+// Tree - cross validation k =5 
+var cvTree = ml.Regression.CrossValidate(
+    data, pipeline,
+    numberOfFolds: 5,
+    labelColumnName: nameof(TripData.EarningsPerHour), 
+    seed: 0);
+
 // calculate average RMSE, MAE, and R^2 across 5 folds
 Console.WriteLine($"Sdca 5-fold: RMSE={cv.Average(f => f.Metrics.RootMeanSquaredError):F2} " +
                   $"MAE={cv.Average(f => f.Metrics.MeanAbsoluteError):F2}  " +
                   $"R2={cv.Average(f => f.Metrics.RSquared):F2}" );
+Console.WriteLine($"FastTree 5-fold: RMSE={cvTree.Average(f => f.Metrics.RootMeanSquaredError):F2} " +
+                  $"MAE={cvTree.Average(f => f.Metrics.MeanAbsoluteError):F2} " +
+                  $"R2={cvTree.Average(f => f.Metrics.RSquared):F2}" );
 
 public class TripRecord
 {
