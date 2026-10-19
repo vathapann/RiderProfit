@@ -1,0 +1,68 @@
+/* RiderProfit visual refresh, 19 Oct 2026.
+   Styles only: no service, model, database, event handler or ML changes.
+   Loaded after RiderProfit.styles.css to override original templates. */
+:root{--rp-bg:#f5f8fc;--rp-surface:#fff;--rp-ink:#172b45;--rp-muted:#60728b;--rp-line:#e1eaf3;--rp-blue:#2563eb;--rp-green:#079b78;--rp-radius:17px;--rp-shadow:0 6px 24px rgba(22,49,83,.045)}
+html,body{font-family:Inter,'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--rp-ink);background:var(--rp-bg);font-size:15px}
+.page{min-height:100vh}
+.page main{min-width:0;background:var(--rp-bg)}
+.page article.content{padding-top:2.1rem;padding-bottom:3rem;max-width:1800px;margin-inline:auto}
+.page article.content h1{font-size:clamp(1.9rem,2.7vw,2.65rem);font-weight:760;letter-spacing:-.045em;line-height:1.15;color:var(--rp-ink);margin-bottom:1.2rem}
+.page article.content h2,.page article.content .h5{font-weight:720;letter-spacing:-.025em;color:var(--rp-ink)}
+.page article.content p.text-muted,.page article.content .text-muted{color:var(--rp-muted)!important}
+.page .top-row{background:rgba(255,255,255,.94);border-bottom:1px solid var(--rp-line);backdrop-filter:blur(14px);height:4rem}
+.page .top-row a{color:var(--rp-muted);font-size:.88rem;font-weight:600}
+.page .sidebar{background:#101e36!important;background-image:linear-gradient(165deg,#11253f,#132c42 65%,#102b36)!important;border-right:1px solid rgba(255,255,255,.07)}
+.page .sidebar .navbar-brand{font-size:1.3rem;font-weight:800;letter-spacing:-.045em}
+.page .sidebar .nav-item{padding-bottom:.28rem}
+.page .sidebar .nav-item a.nav-link{border-radius:11px;min-height:2.9rem;height:auto;line-height:1.35;transition:background .15s ease,transform .15s ease;color:#c8d7e7;padding:.8rem .85rem}
+.page .sidebar .nav-item a.nav-link:hover{background:rgba(255,255,255,.1);color:white;transform:translateX(2px)}
+.page .sidebar .nav-item a.nav-link.active{background:#247caa;color:white;box-shadow:inset 3px 0 #70e3ca,0 5px 12px rgba(0,0,0,.09)}
+.page article.content .card{border:1px solid var(--rp-line);border-radius:var(--rp-radius);background:var(--rp-surface);box-shadow:var(--rp-shadow);overflow:hidden}
+.page article.content .card-body{padding:1.35rem}
+.page article.content .card-header{background:#f9fbfe;border-bottom:1px solid var(--rp-line);font-weight:700;padding:1rem 1.3rem}
+.page article.content .row.g-4>[class*='col-']{min-width:0}
+.page article.content .form-label,.page article.content label:not(.form-check-label){color:#465a73;font-weight:650;font-size:.88rem;margin-bottom:.48rem}
+.page article.content .form-control,.page article.content .form-select,.page article.content input[type='date'],.page article.content input[type='time']{border:1px solid #d5e1ee;border-radius:11px;min-height:43px;background-color:#fff;color:var(--rp-ink);box-shadow:none;transition:border-color .15s,box-shadow .15s}
+.page article.content .form-control:focus,.page article.content .form-select:focus{border-color:#4c91f5;box-shadow:0 0 0 3px rgba(37,99,235,.11)}
+.page article.content .btn{border-radius:10px;font-weight:650;padding:.58rem 1rem;transition:transform .15s,box-shadow .15s}
+.page article.content .btn:hover:not(:disabled){transform:translateY(-1px)}
+.page article.content .btn-primary{background:#2369d5;border-color:#2369d5;box-shadow:0 3px 10px rgba(35,105,213,.13)}
+.page article.content .btn-primary:hover{background:#1956b6;border-color:#1956b6}
+.page article.content .btn-outline-primary{color:#2369d5;border-color:#bdd4f3}
+.page article.content .btn-outline-primary:hover{background:#2369d5;color:#fff}
+.page article.content .btn-outline-danger{border-color:#fac9c9;color:#c73545}
+.page article.content .table-responsive{border:1px solid var(--rp-line);border-radius:15px;background:white;box-shadow:var(--rp-shadow);overflow-x:auto}
+.page article.content .table{margin-bottom:0;width:100%!important;--bs-table-striped-bg:#f7fafe;--bs-table-hover-bg:#eff6ff}
+.page article.content .table thead th{background:#f1f6fc;color:#536781;font-size:.78rem;font-weight:750;text-transform:uppercase;letter-spacing:.045em;border-bottom:1px solid var(--rp-line);padding:1rem .85rem;white-space:nowrap}
+.page article.content .table tbody td{padding:.95rem .85rem;border-color:#eaf0f7;vertical-align:middle;color:#344963}
+.page article.content .table tbody tr:last-child td{border-bottom:0}
+.page article.content .table tbody tr:hover{background:#f7faff}
+.page article.content .alert{border-radius:12px;border-width:1px;padding:.9rem 1.1rem}
+.page article.content .progress{height:12px;border-radius:99px;background:#e8eef5;overflow:hidden}
+.page article.content .progress-bar{border-radius:99px}
+.page article.content .badge{border-radius:8px;padding:.4em .65em;font-weight:650}
+.page article.content .list-group-item{border-color:var(--rp-line);padding:.95rem 1rem}
+.page article.content hr{border-color:var(--rp-line);opacity:1}
+/* Make existing form and list columns read as separate, cohesive sections without modifying Razor. */
+.page article.content:has(form)>.row.g-4>.col-lg-4,.page article.content:has(form)>.row.g-4>.col-lg-8{align-self:start}
+.page article.content:has(form)>.row.g-4>.col-lg-4>h2,.page article.content:has(form)>.row.g-4>.col-lg-8>h2{margin-bottom:1rem}
+/* Dashboard: preserve existing coloured KPI accents and chart logic. */
+.page article.content:has(h1:first-child) .card h2{line-height:1.25}
+.page article.content .card .display-4,.page article.content .card .display-5{letter-spacing:-.045em;font-weight:800}
+.page article.content svg{max-width:100%}
+.page article.content svg text{font-family:Inter,'Segoe UI',sans-serif}
+/* Helpful focus treatment, including keyboard-only navigation. */
+.page a:focus-visible,.page button:focus-visible,.page input:focus-visible,.page select:focus-visible{outline:3px solid rgba(37,99,235,.45);outline-offset:2px}
+@media(min-width:641px){.page .sidebar{width:265px}.page .top-row,.page article.content{padding-left:clamp(1.3rem,2.3vw,2.6rem)!important;padding-right:clamp(1.3rem,2.3vw,2.6rem)!important}}
+@media(max-width:900px){.page article.content .row.g-4{--bs-gutter-x:1rem}.page article.content .card-body{padding:1.05rem}}
+@media(max-width:640px){.page article.content{padding:1.35rem 1rem 2.5rem!important}.page article.content h1{font-size:2rem}.page .top-row{height:3.6rem}.page article.content .table thead th,.page article.content .table tbody td{padding:.7rem .65rem}.page article.content .btn{min-height:42px}}
+@media(prefers-reduced-motion:reduce){.page .sidebar .nav-item a.nav-link,.page article.content .btn{transition:none!important}}
+.nav-scrollable .nav-link .bi {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    margin-right: 12px;
+    font-size: 1.15rem;
+    vertical-align: middle;
+}

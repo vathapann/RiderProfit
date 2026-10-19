@@ -1,4 +1,5 @@
-﻿@implements IDisposable
+﻿
+@implements IDisposable
 
 @inject NavigationManager NavigationManager
 
@@ -14,69 +15,66 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <i class="bi bi-house-door-fill" aria-hidden="true"></i> Home
             </NavLink>
         </div>
-
-        
 
         <AuthorizeView>
             <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Manage">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
+                        <i class="bi bi-person-circle" aria-hidden="true"></i> @context.User.Identity?.Name
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-            <NavLink class="nav-link" href="shift-logging">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Shift Logging
-            </NavLink>
-        </div>
+                    <NavLink class="nav-link" href="shift-logging">
+                        <i class="bi bi-clock-history" aria-hidden="true"></i> Shift Logging
+                    </NavLink>
+                </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="expense-tracking">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Expense Tracking
-            </NavLink>
-        </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="expense-tracking">
+                        <i class="bi bi-wallet2" aria-hidden="true"></i> Expense Tracking
+                    </NavLink>
+                </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="profit-dashboard">
-                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Profit Dashboard
-            </NavLink>
-        </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="profit-dashboard">
+                        <i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Profit Dashboard
+                    </NavLink>
+                </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="shift-planner">
-                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Shift Planner
-            </NavLink>
-        </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="shift-planner">
+                        <i class="bi bi-calendar-week" aria-hidden="true"></i> Shift Planner
+                    </NavLink>
+                </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="fy-summary">
-                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> FY Summary
-            </NavLink>
-        </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="fy-summary">
+                        <i class="bi bi-file-earmark-bar-graph" aria-hidden="true"></i> FY Summary
+                    </NavLink>
+                </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="vehicles">
-                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Vehicles
-            </NavLink>
-        </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="vehicles">
+                        <i class="bi bi-bicycle" aria-hidden="true"></i> Vehicles
+                    </NavLink>
+                </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="settings">
-                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Settings
-            </NavLink>
-        </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="settings">
+                        <i class="bi bi-gear-fill" aria-hidden="true"></i> Settings
+                    </NavLink>
+                </div>
 
-        
                 <div class="nav-item px-3">
                     <form action="Account/Logout" method="post">
                         <AntiforgeryToken />
                         <input type="hidden" name="ReturnUrl" value="@currentUrl" />
                         <button type="submit" class="nav-link">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                            <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Logout
                         </button>
                     </form>
                 </div>
@@ -84,12 +82,12 @@
             <NotAuthorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                        <i class="bi bi-person-plus" aria-hidden="true"></i> Register
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                        <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Login
                     </NavLink>
                 </div>
             </NotAuthorized>
@@ -117,4 +115,3 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
-
