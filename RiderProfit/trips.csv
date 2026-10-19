@@ -1,0 +1,5 @@
+Date,AcceptedTime,OrderType,StoreName,PickupStreet,RestaurantSuburb,DropoffStreet,DropoffSuburb,DropoffPostcode,ActualDurationSec,DistanceKm,TotalAmount,Tip,Notes,IsRaining,IsPublicHoliday
+9/10/2026,17:56,DELIVERY,Aomori Sushi (Caringbah),,,Cawarra Rd,Caringbah,,1320,5.04,7.05,0.0,"shift 1, trip 5",False,False
+9/10/2026,18:09,DELIVERY,Dan Murphy's (Kirrawee),,,Wattle Road,Jannali,,2845,17.73,32.27,0.0,"shift 1, trip 4",False,False
+9/10/2026,19:32,DELIVERY,Paddy Chans (Kensington),,,Williams Parade,Dulwich Hill,,2586,15.67,15.05,0.0,"shift 1, trip 2",False,False
+9/10/2026,20:08,DELIVERY,Liquorland (Marrickville),,,Fletcher Street,Campsie,,2246,14.29,22.0,0.0,"shift 1, trip 1",False,False

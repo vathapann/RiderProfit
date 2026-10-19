@@ -1,0 +1,29 @@
+Date,AcceptedTime,OrderType,StoreName,PickupStreet,RestaurantSuburb,DropoffStreet,DropoffSuburb,DropoffPostcode,ActualDurationSec,DistanceKm,TotalAmount,Tip,Notes,IsRaining,IsPublicHoliday
+3/09/2026,16:35,DELIVERY,OOSHMAN Caringbah,,,Searl Road,Cronulla,,1860,7.5,13.41,0.0,"shift 2, trip 10",False,False
+3/09/2026,17:09,DELIVERY,Dan Murphy's (Caringbah),,Caringbah,Dolans Road,Woolooware,,1435,6.78,7.17,0.0,"shift 2, trip 9",False,False
+3/09/2026,17:24,DELIVERY,Kebabs on Kingsway,,,Sixth Avenue,Loftus,,3338,13.6,21.13,0.0,"shift 2, trip 8",False,False
+3/09/2026,19:04,DELIVERY,Subway (Sutherland),,Sutherland,Old Illawarra Rd,Menai,,1932,16.3,15.25,0.0,"shift 2, trip 7",False,False
+3/09/2026,19:39,DELIVERY,Midnight Pizza Menai,,,Bella Place,Barden Ridge,,779,4.07,6.03,0.0,"shift 2, trip 6",False,False
+9/10/2026,17:18,DELIVERY,Itsumo Sushi,,,Gregory Street,South Coogee,,2763,13.78,21.69,0.0,"shift 5, trip 29",False,False
+9/10/2026,17:56,DELIVERY,Aomori Sushi (Caringbah),,,Cawarra Rd,Caringbah,,1320,5.04,7.05,0.0,"shift 1, trip 5",False,False
+9/10/2026,18:09,DELIVERY,Dan Murphy's (Kirrawee),,,Wattle Road,Jannali,,2845,17.73,32.27,0.0,"shift 1, trip 4",False,False
+9/10/2026,18:22,DELIVERY,Kokoroya,,,Dawes Street,Little Bay,,1554,7.98,11.09,0.0,"shift 5, trip 28",False,False
+9/10/2026,19:00,DELIVERY,El Jannah (Maroubra NSW),,Maroubra NSW,Hayden PI,Botany,,1932,7.42,11.06,0.0,"shift 5, trip 27",False,False
+9/10/2026,19:05,DELIVERY,Medan Ciak Mascot,,,Homebush Road,Strathfield,,2093,18.3,14.09,0.0,"shift 5, trip 26",False,False
+9/10/2026,19:32,DELIVERY,Paddy Chans (Kensington),,,Williams Parade,Dulwich Hill,,2586,15.67,15.05,0.0,"shift 1, trip 2",False,False
+9/10/2026,19:32,DELIVERY,BWS Botany,,,King St,Mascot,,731,3.33,6.07,0.0,"shift 5, trip 25",False,False
+9/10/2026,20:08,DELIVERY,Liquorland (Marrickville),,,Fletcher Street,Campsie,,2246,14.29,22.0,0.0,"shift 1, trip 1",False,False
+9/10/2026,20:14,DELIVERY,Deccan Darbar,,,Meredith St,Bankstown,,3900,18.67,24.51,0.0,"shift 5, trip 24",False,False
+10/10/2026,17:50,DELIVERY,grk Meze Grill,,,Boyce Road,Maroubra,,2343,14.97,14.36,0.0,"shift 4, trip 23",False,False
+10/10/2026,18:45,DELIVERY,OOSHMAN Maroubra,,,Bilga Crescent,Malabar,,1436,5.09,11.01,0.0,"shift 4, trip 22",False,False
+10/10/2026,19:13,DELIVERY,BIG Dave's Irish Chipper,,,Montgomery St,Kogarah,,1952,14.87,14.07,0.0,"shift 4, trip 21",False,False
+10/10/2026,19:31,DELIVERY,Thai Bites (Kogarah),,Kogarah,Macquarie St,Greenacre,,3572,16.69,24.49,0.0,"shift 4, trip 20",False,False
+10/10/2026,20:57,DELIVERY,LALA'S,,,Milton Street,Ashfield,,1580,9.5,10.07,0.0,"shift 4, trip 19",False,False
+10/10/2026,21:24,DELIVERY,The Bottle-O (Canterbury),,Canterbury,Bidjigal Rd,Arncliffe,,3041,12.86,22.06,0.0,"shift 4, trip 18",False,False
+11/10/2026,18:05,DELIVERY,Crust Gourmet Pizza Bar (Gymea),,Gymea,Manning St,Oyster Bay,,2346,12.15,16.48,0.0,"shift 3, trip 17",False,False
+11/10/2026,18:32,DELIVERY,Burgerco Kareela,,,Soldiers Rd,Jannali,,1952,10.86,7.31,0.0,"shift 3, trip 16",False,False
+11/10/2026,18:58,DELIVERY,Dan Murphy's (Kirrawee),,Kirrawee,David Rd,Barden Ridge,,1951,16.98,15.91,0.0,"shift 3, trip 15",False,False
+11/10/2026,19:52,DELIVERY,Supabarn (Gymea),,Gymea,Tuffy Ave,Sans Souci,,1446,11.27,12.0,0.0,"shift 3, trip 14",False,False
+11/10/2026,20:25,DELIVERY,Red Rooster (Carlton),,Carlton,Karoola Crescent,Caringbah,,1177,10.59,9.56,0.0,"shift 3, trip 13",False,False
+11/10/2026,20:52,DELIVERY,Subway (Taren Point),,Taren Point,Gwawley Pde,Miranda,,603,2.7,6.29,0.0,"shift 3, trip 12",False,False
+11/10/2026,21:07,DELIVERY,McDonald's® (Sans Souci),,Sans Souci,Plant St,Carlton,,1318,8.48,11.04,0.0,"shift 3, trip 11",False,False

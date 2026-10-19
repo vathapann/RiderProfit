@@ -1,22 +1,97 @@
 @page "/"
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@using RiderProfit.Data
+@inject UserManager<ApplicationUser> UserManager
 @inject IVehicleService VehicleService
-@* The first page to start with (Welcome page) when the user is not logged in. This page is accessible to all users, regardless of their authentication status. *@
+@inject IShiftService ShiftService
+@* Welcome page. Logged-in riders see their profile and a summary; visitors see a short introduction. *@
 
 <PageTitle>Home</PageTitle>
+
 <AuthorizeView>
     <Authorized>
-        <h1>Hello @context.User.Identity?.Name!</h1>
-        <p>Welcome to RiderProfit App!</p>
-
-        @* Get-started banner for new riders who haven't added a vehicle yet *@
-        @if (hasNoVehicles)
+        @if (rider is null)
         {
-            <NoVehiclePrompt Message="Get started: add your vehicle, then log your first shift." />
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            <h1>Hello, @riderName!</h1>
+            <p class="text-muted">Welcome back to RiderProfit.</p>
+
+            @* Get-started banner for new riders who haven't added a vehicle yet *@
+            @if (hasNoVehicles)
+            {
+                <NoVehiclePrompt Message="Get started: add your vehicle, then log your first shift." />
+            }
+
+            <div class="row g-3 mb-4">
+                @* The logged-in rider's profile *@
+                <div class="col-md-6 col-lg-5">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h2 class="h5 card-title">
+                                <i class="bi bi-person-circle me-1" aria-hidden="true"></i> My profile
+                            </h2>
+                            <dl class="row mb-3">
+                                <dt class="col-5 text-muted fw-normal">Name</dt>
+                                <dd class="col-7">@riderName</dd>
+
+                                <dt class="col-5 text-muted fw-normal">Email</dt>
+                                <dd class="col-7 text-break">@rider.Email</dd>
+
+                                <dt class="col-5 text-muted fw-normal">State</dt>
+                                <dd class="col-7">@rider.State</dd>
+
+                                @if (!string.IsNullOrWhiteSpace(rider.HomeSuburb))
+                                {
+                                    <dt class="col-5 text-muted fw-normal">Home suburb</dt>
+                                    <dd class="col-7">@rider.HomeSuburb</dd>
+                                }
+                            </dl>
+                            @* Account settings (email, password) from ASP.NET Identity *@
+                            <a href="Account/Manage" class="btn btn-sm btn-outline-secondary">Manage account</a>
+                        </div>
+                    </div>
+                </div>
+
+                @* Quick summary of the rider's activity *@
+                <div class="col-md-6 col-lg-7">
+                    <div class="row g-3 h-100">
+                        <div class="col-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="text-muted small">Shifts logged</div>
+                                    <div class="fs-3 fw-semibold">@shiftCount</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="text-muted small">Trips recorded</div>
+                                    <div class="fs-3 fw-semibold">@tripCount</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="shift-logging" class="btn btn-primary">Log a shift</a>
+                                <a href="profit-dashboard" class="btn btn-outline-primary">View profit dashboard</a>
+                                <a href="shift-planner" class="btn btn-outline-primary">Plan a shift</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         }
     </Authorized>
     <NotAuthorized>
-        <p>Please log in to access the RiderProfit App.</p>
+        <h1>Welcome to RiderProfit</h1>
+        <p>Track your delivery shifts, trips and expenses, and see your real profit per hour.</p>
+        <a href="Account/Login" class="btn btn-primary">Log in</a>
+        <a href="Account/Register" class="btn btn-outline-primary ms-2">Register</a>
     </NotAuthorized>
 </AuthorizeView>
 
@@ -24,20 +99,39 @@
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
 
+    private ApplicationUser? rider;
+    private string riderName = string.Empty;
     private bool hasNoVehicles;
+    private int shiftCount;
+    private int tripCount;
 
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthState).User;
         var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // Visitors who aren't logged in have no vehicles to check
+        // Visitors who aren't logged in see the introduction instead
         if (userId is null)
         {
             return;
         }
 
+        rider = await UserManager.FindByIdAsync(userId);
+        if (rider is null)
+        {
+            return;
+        }
+
+        // Registration doesn't ask for a display name yet, so fall back to the start of the email
+        riderName = !string.IsNullOrWhiteSpace(rider.DisplayName)
+            ? rider.DisplayName
+            : rider.Email?.Split('@')[0] ?? "rider";
+
         var vehicles = await VehicleService.GetVehiclesAsync(userId);
         hasNoVehicles = vehicles.Count == 0;
+
+        var shifts = await ShiftService.GetShiftsAsync(userId);
+        shiftCount = shifts.Count;
+        tripCount = shifts.Sum(s => s.TripCount);
     }
 }
