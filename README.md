@@ -16,6 +16,8 @@ they used, and the app subtracts running costs to show net profit per hour. It t
 along with weather forecasts and public holidays, to suggest which future shifts are likely to be
 most worthwhile.
 
+The Shift Planner uses real trip data to train an ML.NET model that predicts earnings per delivery hour from day of week, hour of day and pickup suburb. Weather forecasts and public holidays are shown as reference information and are not used as model features.
+
 ### Screens
 
 | Screen | What it does |
@@ -34,9 +36,9 @@ Each rider has their own account (ASP.NET Core Identity), and every rider sees o
 
 | Member | Main responsibilities |
 |---|---|
-| TBD | Shifts, Vehicles, data model and EF Core, weather and holiday APIs |
-| TBD | Profit Dashboard, charts and responsive layout |
-| TBD | Expenses, Shift Planner, ML.NET model, NUnit test project |
+| Sovatha | Shifts, Vehicles, data model and EF Core, weather and holiday APIs | NUnit test project
+| Tiwat | Profit Dashboard, charts and responsive layout |
+| Ellie | Expenses, Shift Planner, ML.NET model |
 
 ## Versions
 
@@ -124,4 +126,4 @@ To start again with an empty database, stop the app and delete `RiderProfit/Data
 dotnet ef migrations add {migration_msg} --project RiderProfit
 
 -> build project
-dotnet build --project RiderProfit
+dotnet build
