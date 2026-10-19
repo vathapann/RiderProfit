@@ -49,7 +49,7 @@ builder
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
-// Add application services (VehicleService)
+// Add application services (e.g VehicleService)
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IPlatformService, PlatformService>();
 builder.Services.AddScoped<IShiftService, ShiftService>();

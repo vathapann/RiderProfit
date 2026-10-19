@@ -20,12 +20,13 @@ most worthwhile.
 
 | Screen | What it does |
 |---|---|
-| **Shifts** | Add, edit and delete shifts: platform, suburb, vehicle, start and end time, distance, earnings and tips, with validation. |
+| **Home** | The logged-in rider's profile, a summary of shifts and trips, and quick links. |
+| **Shift Logging** | Log shifts (date, start and end time, platform, vehicle) with validation, and list past shifts. |
+| **Shift Details** | A shift's trips and totals. Add trips manually or import them from an Uber Eats screenshot (Azure AI Vision OCR), with rain and public holidays filled in automatically. |
 | **Expenses** | Record expenses by category and date, optionally linked to a shift. |
-| **Profit Dashboard** | Net profit per hour, with interactive charts comparing platforms, days of the week and time slots. |
-| **Shift Planner** | Compares possible working times using past shifts, the Open-Meteo weather forecast and public holidays, with an ML.NET profit prediction. |
-| **Vehicles** | Bike, e-bike and car profiles with their running cost per km, used to work out each shift's cost. |
-| **FY Summary** | Income, expenses and net profit for an Australian financial year (July–June), with CSV export. |
+| **Profit Dashboard** | Net profit and profit per hour, with charts comparing platforms, days of the week and time slots. |
+| **Shift Planner** | Predicts earnings per hour for a day, hour and suburb with an ML.NET model trained on past trips. |
+| **Vehicles** | Car, motorbike and e-bike profiles with their running cost per km, used to work out each shift's cost. |
 
 Each rider has their own account (ASP.NET Core Identity), and every rider sees only their own data.
 
@@ -34,8 +35,8 @@ Each rider has their own account (ASP.NET Core Identity), and every rider sees o
 | Member | Main responsibilities |
 |---|---|
 | TBD | Shifts, Vehicles, data model and EF Core, weather and holiday APIs |
-| TBD | Profit Dashboard, FY Summary, charts and responsive layout |
-| TBD | Expenses, Shift Planner, ML.NET model, NUnit test project |re
+| TBD | Profit Dashboard, charts and responsive layout |
+| TBD | Expenses, Shift Planner, ML.NET model, NUnit test project |
 
 ## Versions
 
