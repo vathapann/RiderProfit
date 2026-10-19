@@ -9,6 +9,7 @@
 @inject IShiftService ShiftService
 @inject IExpenseService ExpenseService
 @inject IPlatformService PlatformService
+@inject IShiftPredictor Predictor
 
 <PageTitle>Profit Dashboard</PageTitle>
 <h1>Profit Dashboard</h1>
@@ -29,6 +30,7 @@ else
             <div class="col-md-3">
                 <label class="form-label">Date range</label>
                 <select class="form-select" @bind="selectedRange">
+                    <option value="all">All time</option>
                     <option value="week">This week</option>
                     <option value="month">This month</option>
                     <option value="custom">Custom</option>
@@ -139,6 +141,85 @@ else
                 </div>
             </div>
         </div>
+
+        <!-- Hourly ML forecasts are separate from recorded earnings and profit. -->
+        <section class="card border-0 shadow-sm mt-4 mb-4" style="border-radius:20px;overflow:hidden;" aria-labelledby="forecast-title">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <div class="small fw-bold text-primary text-uppercase" style="letter-spacing:.08em;">Machine learning insights</div>
+                        <h2 id="forecast-title" class="h4 fw-bold mt-1 mb-1">Hourly earnings forecast</h2>
+                        <p class="text-muted mb-0">Predicted earnings per delivery hour for today and tomorrow.</p>
+                    </div>
+                    <div style="min-width:220px;">
+                        <label for="forecast-suburb" class="form-label fw-semibold">Restaurant suburb</label>
+                        <select id="forecast-suburb" class="form-select" @bind="predictionSuburb" @bind:after="RefreshForecast" disabled="@(!HasPredictionSuburbs)">
+                            @foreach (var suburb in Predictor.KnownSuburbs)
+                            {
+                                <option value="@suburb">@suburb</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                @if (!HasPredictionSuburbs)
+                {
+                    <div class="alert alert-warning mb-0">No restaurant suburbs are available in the ML model.</div>
+                }
+                else if (forecastError is not null)
+                {
+                    <div class="alert alert-warning mb-0">@forecastError</div>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var forecastDay in new[] { DateTime.Today, DateTime.Today.AddDays(1) })
+                        {
+                            var hourly = HourlyForecast.Where(p => p.Time.Date == forecastDay.Date).ToList();
+                            var best = hourly.OrderByDescending(p => p.Amount).FirstOrDefault();
+                            <div class="col-lg-6">
+                                <div class="rounded-4 p-3 h-100" style="background:#f4f8fd;border:1px solid #dce6f3;">
+                                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                                        <div>
+                                            <div class="fw-bold">@((forecastDay.Date == DateTime.Today) ? "Today" : "Tomorrow")</div>
+                                            <div class="small text-muted">@forecastDay.ToString("ddd, dd MMM yyyy")</div>
+                                        </div>
+                                        @if (best is not null)
+                                        {
+                                            <div class="text-end">
+                                                <div class="small text-muted">Best predicted hour</div>
+                                                <div class="fw-bold text-success">@best.Time.ToString("HH:mm") · @Money(best.Amount)/hr</div>
+                                            </div>
+                                        }
+                                    </div>
+                                    <svg viewBox="0 0 540 240" style="width:100%;height:auto;" role="img" aria-label="Hourly predicted earnings for @forecastDay.ToString("dddd")">
+                                        @for (var grid = 0; grid <= 4; grid++)
+                                        {
+                                            var y = 185 - grid * 40;
+                                            <line x1="48" y1="@y" x2="525" y2="@y" stroke="#d8e2ee" stroke-dasharray="4 4" />
+                                        }
+                                        @for (var hour = 0; hour < 24; hour++)
+                                        {
+                                            var point = hourly.FirstOrDefault(p => p.Time.Hour == hour);
+                                            var amount = point?.Amount ?? 0d;
+                                            var height = ForecastScale > 0 ? Math.Max(0, amount) / ForecastScale * 160 : 0;
+                                            var x = 54 + hour * 19.5;
+                                            var y = 185 - height;
+                                            <rect x="@x" y="@y" width="13" height="@height" rx="3" fill="@(best is not null && hour == best.Time.Hour ? "#0f987a" : "#377dcc")">
+                                                <title>@forecastDay.ToString("ddd dd MMM") @($"{hour:00}:00"): @Money(amount) per delivery hour</title>
+                                            </rect>
+                                        }
+                                    </svg>
+                                    <div class="d-flex justify-content-between small text-muted px-2"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
+                                    <div class="small text-muted text-center mt-1">Hour of day · Predicted $/delivery hour</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <p class="text-muted small mt-3 mb-0">Estimates use the existing Shift Planner ML model for each hour and the selected restaurant suburb. They are earnings per delivery hour, not net profit or guaranteed income. The model uses limited training data and does not include idle time between orders.</p>
+                }
+            </div>
+        </section>
     }
 }
 
@@ -152,10 +233,47 @@ else
     private List<Expense> expenses = new();
     private List<Platform> platforms = new();
 
-    private string selectedRange = "week";
+    private string selectedRange = "all";
     private int selectedPlatform = 0;
     private DateTime startDate = DateTime.Today.AddDays(-7);
     private DateTime endDate = DateTime.Today;
+
+    private string predictionSuburb = string.Empty;
+    private string? forecastError;
+    private List<HourlyPrediction> HourlyForecast = new();
+    private bool HasPredictionSuburbs => Predictor.KnownSuburbs.Any();
+    private double ForecastScale => Math.Max(1, Math.Ceiling(HourlyForecast.Select(p => Math.Max(0, p.Amount)).DefaultIfEmpty(0).Max() / 5) * 5);
+
+    private sealed record HourlyPrediction(DateTime Time, double Amount);
+
+    private void RefreshForecast()
+    {
+        HourlyForecast.Clear();
+        forecastError = null;
+        if (!HasPredictionSuburbs || string.IsNullOrWhiteSpace(predictionSuburb))
+            return;
+
+        try
+        {
+            var today = DateTime.Today;
+            for (var dayOffset = 0; dayOffset < 2; dayOffset++)
+            {
+                for (var hour = 0; hour < 24; hour++)
+                {
+                    var time = today.AddDays(dayOffset).AddHours(hour);
+                    var prediction = (double)Predictor.Predict(time.DayOfWeek, hour, predictionSuburb);
+                    if (double.IsNaN(prediction) || double.IsInfinity(prediction))
+                        throw new InvalidOperationException("The ML model returned an invalid prediction.");
+                    HourlyForecast.Add(new HourlyPrediction(time, prediction));
+                }
+            }
+        }
+        catch (Exception)
+        {
+            HourlyForecast.Clear();
+            forecastError = "Could not generate the hourly forecast. Please check the ML model configuration.";
+        }
+    }
 
     private readonly string[] slots = { "Breakfast", "Lunch", "Dinner", "Late night" };
     private readonly DayOfWeek[] days = { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
@@ -175,6 +293,8 @@ else
             shifts = await ShiftService.GetShiftsAsync(userId);
             expenses = await ExpenseService.GetExpensesAsync(userId);
             platforms = await PlatformService.GetPlatformsAsync(userId);
+            predictionSuburb = Predictor.KnownSuburbs.FirstOrDefault() ?? string.Empty;
+            RefreshForecast();
         }
         catch (Exception)
         {
@@ -188,12 +308,13 @@ else
 
     private DateTime FromDate => selectedRange switch
     {
+        "all" => DateTime.MinValue,
         "week" => DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7)),
         "month" => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1),
         _ => startDate.Date
     };
 
-    private DateTime ToDate => selectedRange == "custom" ? endDate.Date : DateTime.Today;
+    private DateTime ToDate => selectedRange == "all" ? DateTime.MaxValue.Date : selectedRange == "custom" ? endDate.Date : DateTime.Today;
 
     private List<Shift> FilteredShifts => shifts.Where(s =>
         s.StartTime.Date >= FromDate && s.StartTime.Date <= ToDate &&
